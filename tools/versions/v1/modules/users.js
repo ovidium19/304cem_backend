@@ -10,7 +10,7 @@ const router = new Router()
 router.get('/',async ctx => {
     ctx.set('Allow','GET')
     ctx.status = status.OK
-    ctx.body = "/api/user - path"
+    ctx.body = "/api/v1/user - path"
 })
 app.use(router.routes())
 app.use(router.allowedMethods())

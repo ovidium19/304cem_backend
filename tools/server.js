@@ -4,8 +4,15 @@ import Router from 'koa-router'
 import status from 'http-status-codes'
 import mount from 'koa-mount'
 import path from 'path'
-import users from './modules/users'
+import * as db from './modules/db-persist'
 
+import v1 from './versions/v1/v1'
+require('dotenv').config()
+function testPromise() {
+    return new Promise((resolve,reject) => {
+        setTimeout(() => resolve(2),2000)
+    })
+}
 const app = new koa()
 const port = 3030
 app.use(koaBP())
@@ -19,12 +26,48 @@ app.use( async(ctx, next) => {
 router.get('/api', async ctx => {
     ctx.set('Allow','GET')
     ctx.status = status.OK
-    ctx.body = "304CEM Api"
+    try{
+        const collections = await db.fetchCollections()
+        const names = collections.map(c => {
+            return {
+                name: c.s.name
+            }
+        })
+        ctx.body = names
+    }
+    catch(err){
+        console.log(err)
+    }
 })
 app.use(router.routes())
 app.use(router.allowedMethods())
-app.use(mount('/api/users',users))
-const server = app.listen(port, () => {
+app.use(mount('/api/v1',v1))
+const server = app.listen(port, async() => {
     console.log(`Listening on port ${port}`)
+    try{
+        const value = await testPromise()
+        console.log(`Value: ${value}`)
+        await db.connect(process.env.MONGO_DBNAME)
+    }
+    catch(err) {
+        console.log(err.message)
+    }
 })
+// ctrl-c to trigger
+process.on('SIGINT', async () => {
+    // let's shut everything down!
+    console.log("shutting down...")
+    try{
+        await db.close()
+    }
+    catch(err) {
+        console.log(err.message)
+    }
+    server.close(function() {
+      console.log("shut down!")
+      process.exit()
+    })
+  })
+
+
 export default server
