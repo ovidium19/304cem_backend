@@ -8,11 +8,6 @@ import * as db from './modules/db-persist'
 
 import v1 from './versions/v1/v1'
 require('dotenv').config()
-function testPromise() {
-    return new Promise((resolve,reject) => {
-        setTimeout(() => resolve(2),2000)
-    })
-}
 const app = new koa()
 const port = 3030
 app.use(koaBP())
@@ -45,8 +40,6 @@ app.use(mount('/api/v1',v1))
 const server = app.listen(port, async() => {
     console.log(`Listening on port ${port}`)
     try{
-        const value = await testPromise()
-        console.log(`Value: ${value}`)
         await db.connect(process.env.MONGO_DBNAME)
     }
     catch(err) {

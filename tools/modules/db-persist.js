@@ -9,8 +9,8 @@ export async function connect(dbName) {
         ssl: true,
         authSource: "admin",
         auth: {
-            user: "ovidium19",
-            password: "304CemWork"
+            user: process.env.MONGO_ADMIN_USERNAME,
+            password: process.env.MONGO_ADMIN_PASS
         },
         useNewUrlParser: true
     }
