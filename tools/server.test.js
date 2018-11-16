@@ -51,3 +51,80 @@ describe('GET /api', () => {
 		done()
 	})
 })
+describe('GET /api/v1', () => {
+    beforeAll(runBeforeAll)
+
+    test('check common response headers', async done => {
+		//expect.assertions(2)
+        const response = await request(server).get('/api/v1')
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		expect(response.header['content-type']).toContain('application/json')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+		const response = await request(server).get('/api/v1')
+			.set('error', 'foo')
+        expect(response.status).toEqual(status.NOT_FOUND)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('check body for api/v1', async done => {
+        const response = await request(server).get('/api/v1')
+        expect(response.body).toEqual(expect.objectContaining({path: expect.any(String)}))
+        done()
+    })
+})
+
+describe('GET /api/v1/user', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+		//expect.assertions(2)
+        const response = await request(server).get('/api/v1/user')
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		expect(response.header['content-type']).toContain('application/json')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+		const response = await request(server).get('/api/v1/user')
+			.set('error', 'foo')
+        expect(response.status).toEqual(status.NOT_FOUND)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('check body for api/v1', async done => {
+        const response = await request(server).get('/api/v1/user')
+        expect(response.body).toEqual(expect.objectContaining({
+            path: '/api/v1/user - path'
+        }))
+        done()
+    })
+})
+describe('POST /api/v1/user/create', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('Check common headers' , async done => {
+        //expect.assertions(2)
+        const response = await request(server).post('/api/v1/user/create')
+                            .expect(status.NOT_MODIFIED)
+        //expect(response.status).toBe(status.OK)
+        console.log(response.header)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+
+    test('If successful, user should be added to the database and returned', async done => {
+        const response = await request(server).post('/api/v1/user/create')
+                            .set('Accept', 'application/json')
+                            .send({username: 'test',password: 'test'})
+                            .expect(status.CREATED)
+        expect(response.body).toEqual(expect.objectContaining({username: 'test'}))
+        done()
+    })
+})
