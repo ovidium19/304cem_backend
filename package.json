@@ -2,7 +2,7 @@
   "name": "ovidiu_mitroi_6832432_back_end",
   "version": "1.0.0",
   "description": "304CEM Back End - Works with MongoDB - Provides all api paths available for this project",
-  "main": "index.js",
+  "main": "tools/server.js",
   "scripts": {
     "start": "npm-run-all --parallel  open:src lint:watch test:watch",
     "open:src": "babel-node tools/server.js",

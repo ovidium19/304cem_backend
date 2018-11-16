@@ -3,27 +3,19 @@ import {MongoClient} from  'mongodb'
 let db
 let db_client
 
-export async function connect(dbName) {
+async function connect(user) {
     let conString = process.env.MONGO_CONNECTION_STRING
     let options = {
         ssl: true,
-        authSource: "admin",
+        authSource: 'admin',
         auth: {
-            user: process.env.MONGO_ADMIN_USERNAME,
-            password: process.env.MONGO_ADMIN_PASS
+            user: user.username,
+            password: user.password
         },
         useNewUrlParser: true
     }
     return MongoClient.connect(conString,options).then(client => {
         console.log(`Connected to the database: ${client.isConnected()}`)
-        db = client.db(dbName)
-        db_client = client
+        return client
     })
-}
-export function fetchCollections() {
-    return db.collections().then(res => res).catch(err => err.message)
-}
-export function close() {
-    console.log("Closing DB Connection")
-    return db_client.close().then(() => {console.log("Db Closed")})
 }
