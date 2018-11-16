@@ -15,7 +15,6 @@ const router = new Router()
 app.use( async(ctx, next) => {
     ctx.set('Access-Control-Allow-Origin', '*')
     ctx.set('Content-Type','application/json')
-    ctx.set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	await next()
 })
 router.get('/api', async ctx => {
@@ -52,6 +51,7 @@ process.on('SIGINT', async () => {
     console.log("shutting down...")
     try{
         await db.close()
+        console.log("DB Connection shut down")
     }
     catch(err) {
         console.log(err.message)
