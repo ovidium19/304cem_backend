@@ -33,6 +33,7 @@
   "author": "Ovidiu Mitroi",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.18.0",
     "babel-polyfill": "^6.26.0",
     "dotenv": "^6.1.0",
     "http-status-codes": "^1.3.0",
@@ -42,6 +43,7 @@
     "koa-mount": "^4.0.0",
     "koa-router": "^7.4.0",
     "koa-sendfile": "^2.0.1",
+    "md5": "^2.2.1",
     "mongodb": "^3.1.9"
   },
   "devDependencies": {
