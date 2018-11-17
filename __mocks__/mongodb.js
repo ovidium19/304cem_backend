@@ -12,6 +12,9 @@ export class ObjectID {
     constructor(id) {
         this.id = id
     }
+    static createFromHexString(id) {
+        return id
+    }
 }
 const users = [
     {
@@ -28,7 +31,7 @@ const data = [
         s: {
             name: 'users',
             documents: [{
-                _id: new ObjectID(1),
+                _id: 1,
                 username: 'test',
                 email: 'test@test.com'
             }]
@@ -39,9 +42,9 @@ const data = [
         s: {
             name: 'activities',
             documents: [{
-                _id: new ObjectID(1),
+                _id: 1,
                 name: 'Git',
-                owner: 'test'
+                username: 'test'
             }]
         }
     }
@@ -57,7 +60,7 @@ class Collection {
     insertOne(newData){
         if (this.data.s.documents.find(c => c[this.key] == newData[this.key])) throw new Error('Already exists')
         return new Promise((resolve) => {
-            this.data.s.documents.push(newData)
+            this.data.s.documents.push(Object.assign({},newData,{_id: newData['_id'].id}))
             resolve(this.data.s.documents.find(c => c[this.key] == newData[this.key]))
         })
     }

@@ -19,9 +19,6 @@ let adminUser = {
 /*
 db-persist should have the following API:
     createUser(userData,userLogin) -> returns user if successful, error message if not
-    getCourseById(cid,user) -> returns course if successful, error message if not
-    createCourse(courseData,user) -> returns course if successful, error message if not
-    collections(user) -> returns collections in db
 */
 describe('Testing connection', () => {
     const correctUser = {
