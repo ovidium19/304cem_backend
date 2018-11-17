@@ -1,6 +1,8 @@
 jest.mock('mongodb')
 jest.mock('./modules/db-persist')
+jest.mock('./modules/activity-persist')
 import * as db from './modules/db-persist'
+import * as dba from './modules/activity-persist'
 import server from './server'
 import status from 'http-status-codes'
 import request from 'supertest'
@@ -114,7 +116,6 @@ describe('POST /api/v1/user/create', () => {
         const response = await request(server).post('/api/v1/user/create')
                             .expect(status.UNPROCESSABLE_ENTITY)
         //expect(response.status).toBe(status.OK)
-        console.log(response.header)
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		done()
     })
@@ -172,6 +173,7 @@ describe('GET /api/v1/activities/:id', () => {
 		//expect.assertions(2)
         const response = await request(server).get('/api/v1/activities/1')
         //expect(response.status).toBe(status.OK)
+        console.log(response.header)
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		expect(response.header['content-type']).toContain('application/json')
 		done()
@@ -189,6 +191,41 @@ describe('GET /api/v1/activities/:id', () => {
         expect(response.body).toEqual(expect.objectContaining({
             username: 'test'
         }))
+        done()
+    })
+})
+describe('GET /api/v1/activities/catgory/:cat', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+		//expect.assertions(2)
+        const response = await request(server).get('/api/v1/activities/category/history')
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		expect(response.header['content-type']).toContain('application/json')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+		const response = await request(server).get('/api/v1/activities/category/history')
+			.set('error', 'foo')
+        expect(response.status).toEqual(status.NOT_FOUND)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('Successfully calling should return a known value', async done => {
+        const response = await request(server).get('/api/v1/activities/category/geography')
+        expect(response.body[0]).toEqual(expect.objectContaining({
+            category: 'Geography'
+        }))
+        expect(response.body.length).toBe(5)
+        done()
+    })
+    test('Pagination works', async done => {
+        const response = await request(server).get('/api/v1/activities/category/geography?page=2')
+        console.log(response.body)
+        expect(response.body[0]['_id']).toBe(6)
         done()
     })
 })

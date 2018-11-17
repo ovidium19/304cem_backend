@@ -5,7 +5,7 @@ import koabp from 'koa-bodyparser'
 import status from 'http-status-codes'
 import path from 'path'
 
-import * as db from '../../../modules/activity-persist'
+import * as dba from '../../../modules/activity-persist'
 
 const app = new koa()
 app.use(koaBP())
@@ -20,7 +20,21 @@ router.get('/:id', async ctx => {
     try {
         if (ctx.get('error')) throw new Error(ctx.get('error'))
 
-        let res = await db.getActivityById(ctx.params.id)
+        let res = await dba.getActivityById(ctx.params.id)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.NOT_FOUND
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
+router.get('/category/:cat', async ctx => {
+    ctx.set('Allow','GET')
+    try {
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
+        let page = ctx.query['page']
+        let res = await dba.getActivitiesByCategory(ctx.params.cat,page ? page : 1)
         ctx.status = status.OK
         ctx.body = res
     }

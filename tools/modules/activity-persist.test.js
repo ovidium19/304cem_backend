@@ -21,7 +21,6 @@ activity-persist should have the following API:
 describe("Testing db.getActivityById",() => {
     test("If successful, result should be the activity", async done => {
         let result = await db.getActivityById(1)
-        console.log(result)
         expect(result.username).toBe('test')
         done()
     })
@@ -33,6 +32,19 @@ describe("Testing db.getActivityById",() => {
         catch(err){
             expect(err.message).toBe('Authentication failed')
         }
+        done()
+    })
+})
+describe("Testing db.getActivitiesByCategory",() => {
+    test("If successful, result should be a list of activities", async done => {
+        let result = await db.getActivitiesByCategory('geography')
+        expect(result[0].category).toBe('Geography')
+        expect(result.length).toBe(5)
+        done()
+    })
+    test("If page is specified, expect results to have pagination", async done => {
+        let result = await db.getActivitiesByCategory('geography',2)
+        expect(result[0]['_id']).toBe(6)
         done()
     })
 })

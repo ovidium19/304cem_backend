@@ -41,3 +41,6 @@ export async function digestGenerateHeader(options,user,calls) {
         return authHeader
     })
 }
+export function capitalize(s) {
+    return s[0].toUpperCase() + s.slice(1)
+}

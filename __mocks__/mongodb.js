@@ -16,6 +16,14 @@ export class ObjectID {
         return id
     }
 }
+export class Cursor {
+    constructor(list) {
+        this.list = list
+    }
+    toArray() {
+        return Promise.resolve(this.list)
+    }
+}
 const users = [
     {
         username: 'test',
@@ -41,11 +49,49 @@ const data = [
     {
         s: {
             name: 'activities',
-            documents: [{
+            documents: [
+                {
                 _id: 1,
                 name: 'Git',
+                username: 'test',
+                category: 'Geography'
+                },
+                {
+                _id: 2,
+                name: 'Git',
+                username: 'test',
+                category: 'Geography'
+                },
+                {
+                _id: 3,
+                name: 'Git',
+                username: 'test',
+                category: 'Geography'
+                },
+                {
+                _id: 4,
+                name: 'Git',
+                username: 'test',
+                category: 'Geography'
+                },
+                {
+                _id: 5,
+                name: 'Git',
+                username: 'test',
+                category: 'Geography'
+                },
+                {
+                _id: 6,
+                name: 'Git',
+                username: 'test',
+                category: 'Geography'
+                },
+                {
+                _id: 7,
+                name: 'Git',
                 username: 'test'
-            }]
+                }
+        ]
         }
     }
 ]
@@ -69,6 +115,31 @@ class Collection {
             let user = this.data.s.documents.find(u => u[this.key] == value[this.key])
             resolve(user)
         })
+    }
+    find(query,options) {
+        let data = this.data.s.documents.reduce((p,c,i) => {
+            if (p.values.length>=options.limit) return p
+
+            let include = Object.keys(query).reduce((pv,cv) => {
+                return pv && c[cv] == query[cv]
+            }, true)
+
+            if (include) {
+                if (p.skipped < options.skip) return {
+                    values: Array.from(p.values),
+                    skipped: p.skipped + 1
+                }
+                return {
+                    values: p.values.concat([c]),
+                    skipped: p.skipped
+                }
+            }
+            return p
+        }, {
+            values: [],
+            skipped: 0
+        })
+        return new Cursor(data.values)
     }
 }
 
@@ -115,7 +186,6 @@ class MongoDBClient {
 export class MongoClient {
     static connect(con,options) {
         return new Promise((resolve,reject) => {
-            console.log(options)
             if (options.auth.user == 'forceError') reject(new Error('Connection not established'))
             let user = users.find(u => u.username == options.auth.user)
             if (user && user.password == options.auth.password) resolve(new MongoDBClient())
