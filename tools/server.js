@@ -65,7 +65,9 @@ router.get('/api', async ctx => {
 app.use(router.routes())
 app.use(router.allowedMethods())
 app.use(mount('/api/v1',v1))
-const server = app.listen(port)
+const server = app.listen(port, () => {
+    console.log(`Listening on ${port}`)
+})
 
 
 export default server
