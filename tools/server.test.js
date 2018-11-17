@@ -135,3 +135,31 @@ describe('POST /api/v1/user/create', () => {
         done()
     })
 })
+describe('GET /api/v1/user/:name', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+		//expect.assertions(2)
+        const response = await request(server).get('/api/v1/user/ovidium19')
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		expect(response.header['content-type']).toContain('application/json')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+		const response = await request(server).get('/api/v1/user/ovidium19')
+			.set('error', 'foo')
+        expect(response.status).toEqual(status.NOT_FOUND)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('check body for api/v1/user/:name', async done => {
+        const response = await request(server).get('/api/v1/user/ovidium19')
+        expect(response.body).toEqual(expect.objectContaining({
+            username: 'ovidium19'
+        }))
+        done()
+    })
+})

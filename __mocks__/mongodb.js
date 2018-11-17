@@ -1,31 +1,47 @@
 const dbs = {
-    users: 0,
-    courses:1
+    users: {
+        index: 0,
+        key: 'username'
+    },
+    activities: {
+        index: 1,
+        key: '_id'
+    }
 }
 export class ObjectID {
     constructor(id) {
         this.id = id
     }
 }
+const users = [
+    {
+        username: 'test',
+        password: 'test'
+    },
+    {
+        username: 'ovidium19',
+        password: '304CemWork'
+    }
+]
 const data = [
     {
         s: {
             name: 'users',
             documents: [{
-                _id: 1,
+                _id: new ObjectID(1),
                 username: 'test',
-                password: 'test'
+                email: 'test@test.com'
             }]
-
-            }
+        }
 
     },
     {
         s: {
-            name: 'courses',
+            name: 'activities',
             documents: [{
-                _id: 1,
-                name: 'Git'
+                _id: new ObjectID(1),
+                name: 'Git',
+                owner: 'test'
             }]
         }
     }
@@ -34,32 +50,21 @@ const data = [
 
 class Collection {
     constructor(name) {
-        this.data = Object.assign({},data[dbs[name]])
+        this.data = Object.assign({},data[dbs[name].index])
+        this.key = dbs[name].key
     }
 
-    findOne(query) {
+    insertOne(newData){
+        if (this.data.s.documents.find(c => c[this.key] == newData[this.key])) throw new Error('Already exists')
         return new Promise((resolve) => {
-            let result = this.data.s.documents.find(d => d.hasOwnProperty('_id') && d['_id'] == query['_id'])
-            resolve(result)
+            this.data.s.documents.push(newData)
+            resolve(this.data.s.documents.find(c => c[this.key] == newData[this.key]))
         })
     }
-    insertOne(course){
-        if (this.data.s.documents.find(c => c['_id'] == course['_id'])) throw new Error('Course ID already exists')
-        return new Promise((resolve) => {
-            this.data.s.documents.push(course)
-            resolve(this.data.s.documents.find(c => c['_id'] == course['_id']))
-        })
-    }
-    replaceOne(filter,course) {
-        if (!this.data.s.documents.find(c => c['_id'] == course['_id'])) throw new Error('Course doesn\'t exist')
-        return new Promise((resolve) => {
-            const index = this.data.s.documents.findIndex(c => c['_id']== course['_id'])
-            if (index >= 0){
-                const removed = this.data.s.documents.splice(index,1,course)
-            }
-            const result = this.data.s.documents.find(c => c.name == course.name)
-
-            resolve(result)
+    findOne(value){
+        return new Promise((resolve,reject) => {
+            let user = this.data.s.documents.find(u => u[this.key] == value[this.key])
+            resolve(user)
         })
     }
 }
@@ -79,12 +84,6 @@ class MongoDB {
             catch(err){
                 reject(err)
             }
-        })
-    }
-
-    collections() {
-        return new Promise((resolve,reject) => {
-            !this.forceError ? resolve(data) : reject({message: 'No data'})
         })
     }
 }
@@ -113,13 +112,24 @@ class MongoDBClient {
 export class MongoClient {
     static connect(con,options) {
         return new Promise((resolve,reject) => {
+            console.log(options)
             if (options.auth.user == 'forceError') reject(new Error('Connection not established'))
-            if (options.auth.user !== 'test' && options.auth.password !== 'test') reject(new Error('Authentication failed'))
-            resolve(new MongoDBClient())
+            let user = users.find(u => u.username == options.auth.user)
+            if (user && user.password == options.auth.password) resolve(new MongoDBClient())
+            reject(new Error('Authentication failed'))
         })
     }
-}
+    static addUser(userData) {
+        return new Promise((resolve,reject) => {
 
+            let user = users.find(u => u.username == userData.username)
+            if (user) reject('Username already in use')
+            users.push(userData)
+            resolve({status: 'CREATED'})
+        })
+
+    }
+}
 
 //for testing purposes
 export function getData() {

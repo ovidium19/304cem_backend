@@ -31,3 +31,8 @@ export async function createUser(userData) {
         }
     )
 }
+export async function getUserByUsername(username,user){
+    return new Promise((resolve,reject) => {
+        resolve(users.find(u => u.username == username))
+    })
+}

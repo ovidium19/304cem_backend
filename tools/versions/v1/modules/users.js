@@ -27,6 +27,20 @@ router.get('/',async ctx => {
 		ctx.body = {status: 'error', message: err.message}
     }
 })
+router.get('/:id', async ctx => {
+    ctx.set('Allow', 'GET')
+    try {
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
+        let res = await db.getUserByUsername(ctx.params.id)
+        console.log(res)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.NOT_FOUND
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
 router.post('/create', async ctx => {
     const user = ctx.request.body
     try{
