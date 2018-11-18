@@ -69,9 +69,12 @@ describe('Testing createUser', () => {
             username: 'test2',
             password: 'test'
         }
+        const expectedResult = {
+            insertedId: userData.username.padStart(12,0)
+        }
         const result = await db.createUser(userData)
         console.log(result)
-        expect(result).toEqual(expect.objectContaining({username: 'test2'}))
+        expect(result).toEqual(expect.objectContaining(expectedResult))
         done()
     })
     test('if userData does not have the right schema, provide error message', async done => {

@@ -87,3 +87,22 @@ describe("Testing db.getFiveRandomActivities",() => {
         done()
     })
 })
+describe("Testing db.postActivity",() => {
+    let user
+    let activity
+    beforeAll(() => {
+        user = {
+            username: 'test',
+            password: 'test'
+        }
+        activity = {
+            name: "Test Activity",
+            username: "test"
+        }
+    })
+    test("If successful, activity should be inserted in the db", async done => {
+        let result = await db.postActivity(activity,user)
+        expect(result.id).toBe(8)
+        done()
+    })
+})

@@ -44,3 +44,6 @@ export async function digestGenerateHeader(options,user,calls) {
 export function capitalize(s) {
     return s[0].toUpperCase() + s.slice(1)
 }
+export function schemaCheck(schema,data) {
+    return Object.keys(schema).reduce((p,c,i) => p && data.hasOwnProperty(c), true)
+}

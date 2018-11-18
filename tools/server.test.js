@@ -250,7 +250,6 @@ describe('GET /api/v1/activities/answered/:username', () => {
     })
     test('Successfully calling should return a known value', async done => {
         const response = await request(server).get('/api/v1/activities/answered/test')
-        console.log(response.body)
         expect(response.body.length).toBe(5)
         done()
     })
@@ -284,6 +283,41 @@ describe('GET /api/v1/activities/randomset', () => {
     test('Successfully calling should return a known value', async done => {
         const response = await request(server).get('/api/v1/activities/randomset')
         expect(response.body.length).toBe(5)
+        done()
+    })
+})
+describe('POST /api/v1/activities/create', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+		//expect.assertions(2)
+        const response = await request(server).post('/api/v1/activities/create')
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+
+    test('if activity doesn\'t have the right schema, get error', async done => {
+        const response = await request(server).post('/api/v1/activities/create')
+                                            .send({id: 1, name: 'Bel'})
+                                            .expect(status.UNPROCESSABLE_ENTITY)
+        console.log(response.body)
+        expect(response.body).toEqual(expect.objectContaining({message:'Activity doesn\'t match schema' }))
+        done()
+    })
+    test('if successful, return value should be the course id', async done => {
+        let activity = {
+            username: 'test',
+            name: 'Test Activity'
+        }
+        let expectedResult = {
+            id: 8
+        }
+        const response = await request(server).post('/api/v1/activities/create')
+                                            .send(activity)
+                                            .expect(status.ACCEPTED)
+        expect(response.body).toEqual(expect.objectContaining(expectedResult))
         done()
     })
 })

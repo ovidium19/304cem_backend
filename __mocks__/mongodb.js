@@ -170,10 +170,13 @@ class Collection {
     }
 
     insertOne(newData){
-        if (this.data.s.documents.find(c => c[this.key] == newData[this.key])) throw new Error('Already exists')
+        if (newData[this.key] && this.data.s.documents.find(c => c[this.key] == newData[this.key])) throw new Error('Already exists')
+        if (!(newData.hasOwnProperty('_id'))) {
+            newData['_id'] = new ObjectID(this.data.s.documents.length+1)
+        }
         return new Promise((resolve) => {
             this.data.s.documents.push(Object.assign({},newData,{_id: newData['_id'].id}))
-            resolve(this.data.s.documents.find(c => c[this.key] == newData[this.key]))
+            resolve({insertedId: newData['_id'].id})
         })
     }
     findOne(value){
