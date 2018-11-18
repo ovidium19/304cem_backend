@@ -43,6 +43,20 @@ router.get('/category/:cat', async ctx => {
 		ctx.body = {status: 'error', message: err.message}
     }
 })
+router.get('/answered/:username', async ctx => {
+    ctx.set('Allow','GET')
+    try {
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
+        let page = ctx.query['page']
+        let res = await dba.getActivitiesAnsweredByUser(ctx.params.username,page ? page : 1)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.NOT_FOUND
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
 app.use(router.routes())
 app.use(router.allowedMethods())
 

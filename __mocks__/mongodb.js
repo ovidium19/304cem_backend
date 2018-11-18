@@ -54,42 +54,108 @@ const data = [
                 _id: 1,
                 name: 'Git',
                 username: 'test',
-                category: 'Geography'
+                category: 'Geography',
+                answers: [
+                    {
+                        username: 'test',
+                        correct: true
+                    },
+                    {
+                        username: 'ovi',
+                        correct: false
+                    }
+                ]
                 },
                 {
                 _id: 2,
                 name: 'Git',
                 username: 'test',
-                category: 'Geography'
+                category: 'Geography',
+                answers: [
+                    {
+                        username: 'test',
+                        correct: true
+                    },
+                    {
+                        username: 'ovi',
+                        correct: false
+                    }
+                ]
                 },
                 {
                 _id: 3,
                 name: 'Git',
                 username: 'test',
-                category: 'Geography'
+                category: 'Geography',
+                answers: [
+                    {
+                        username: 'test',
+                        correct: true
+                    },
+                    {
+                        username: 'ovi',
+                        correct: false
+                    }
+                ]
                 },
                 {
                 _id: 4,
                 name: 'Git',
                 username: 'test',
-                category: 'Geography'
+                category: 'Geography',
+                answers: [
+                    {
+                        username: 'test',
+                        correct: true
+                    },
+                    {
+                        username: 'ovi',
+                        correct: false
+                    }
+                ]
                 },
                 {
                 _id: 5,
                 name: 'Git',
                 username: 'test',
-                category: 'Geography'
+                category: 'Geography',
+                answers: [
+                    {
+                        username: 'test',
+                        correct: true
+                    },
+                    {
+                        username: 'ovi',
+                        correct: false
+                    }
+                ]
                 },
                 {
                 _id: 6,
                 name: 'Git',
                 username: 'test',
-                category: 'Geography'
+                category: 'Geography',
+                answers: [
+                    {
+                        username: 'test',
+                        correct: true
+                    },
+                    {
+                        username: 'ovi',
+                        correct: false
+                    }
+                ]
                 },
                 {
                 _id: 7,
                 name: 'Git',
-                username: 'test'
+                username: 'test',
+                answers: [
+                    {
+                        username: 'ovi',
+                        correct: false
+                    }
+                ]
                 }
         ]
         }
@@ -117,7 +183,7 @@ class Collection {
         })
     }
     find(query,options) {
-        let data = this.data.s.documents.reduce((p,c,i) => {
+        let data = this.data.s.documents.reduce((p,c) => {
             if (p.values.length>=options.limit) return p
 
             let include = Object.keys(query).reduce((pv,cv) => {
@@ -140,6 +206,38 @@ class Collection {
             skipped: 0
         })
         return new Cursor(data.values)
+    }
+    aggregate(pipe,options) {
+        let db_data = this.data.s.documents
+        if (options.test.on) {
+            switch(options.test.case) {
+                case 'getActivitiesAnsweredByUser': {
+                    let data = db_data.reduce((p,c) => {
+                        if (p.values.length>=options.limit) return p //we reached page limit, return
+
+                        let answer = c.answers.find(a => a.username == options.test.username)
+                        if (answer){
+                            if (p.skipped < options.skip) return {
+                                values: Array.from(p.values),
+                                skipped: p.skipped + 1
+                            }
+                            return {
+                                values: p.values.concat([Object.assign({},c,{answers: [answer]})]),
+                                skipped: p.skipped
+                            }
+                        }
+                        return p
+                    },{
+                        values: [],
+                        skipped: 0
+                    })
+                    return new Cursor(data.values)
+                    break
+                }
+                default:
+                    return new Cursor([])
+            }
+        }
     }
 }
 

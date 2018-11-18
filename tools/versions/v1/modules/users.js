@@ -32,7 +32,6 @@ router.get('/:id', async ctx => {
     try {
         if (ctx.get('error')) throw new Error(ctx.get('error'))
         let res = await db.getUserByUsername(ctx.params.id)
-        console.log(res)
         ctx.status = status.OK
         ctx.body = res
     }

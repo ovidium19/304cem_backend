@@ -48,3 +48,26 @@ describe("Testing db.getActivitiesByCategory",() => {
         done()
     })
 })
+describe("Testing db.getActivitiesAnsweredByUser",() => {
+    let user
+    let options
+    beforeAll(() => {
+        user = {
+            username: 'test',
+            password: 'test'
+        }
+        options = {on: true, case: 'getActivitiesAnsweredByUser', username: 'test'}
+    })
+    test("If successful, result should be a list of activities", async done => {
+        let result = await db.getActivitiesAnsweredByUser('test',1,5,user,options)
+        expect(result.length).toBe(5)
+        expect(result[0].answers.length).toBe(1)
+        done()
+    })
+    test("If page is specified, expect results to have pagination", async done => {
+        let result = await db.getActivitiesAnsweredByUser('test',2,5,user,options)
+        expect(result.length).toBe(1)
+        expect(result[0]['_id']).toBe(6)
+        done()
+    })
+})

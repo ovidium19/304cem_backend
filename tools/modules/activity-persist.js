@@ -16,16 +16,46 @@ export async function getActivityById(id,user = adminUser) {
     return result
 
 }
-export async function getActivitiesByCategory(cat,page = 1,perPage = 5,user = adminUser) {
+export async function getActivitiesByCategory(cat,page = 1,perPage = 5,user = adminUser,test = {on: false}) {
     let client = await connect(user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
     const options = {
-        limit: 5,
-        skip: (page-1) * perPage
+        limit: perPage,
+        skip: (page-1) * perPage,
+        projection: {
+            'answers': 0
+        },
+        test
     }
 
     let cursor = await collection.find({'category': capitalize(cat)},options)
+    let result = await cursor.toArray()
+    await client.close()
+    return result
+}
+export async function getActivitiesAnsweredByUser(username,page = 1,perPage = 5,user = adminUser,test = {on: false}) {
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    const options = {
+        limit: perPage,
+        skip: (page-1) * perPage,
+        test
+    }
+
+    let cursor = await collection.aggregate([
+        { $unwind: "$answers"},
+        {
+            $match: { "answers.username": username}
+        },
+        {
+            $skip: (page-1) * perPage
+        },
+        {
+            $limit: perPage
+        }
+    ],options)
     let result = await cursor.toArray()
     await client.close()
     return result
