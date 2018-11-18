@@ -106,3 +106,25 @@ describe("Testing db.postActivity",() => {
         done()
     })
 })
+describe("Testing db.updateActivity",() => {
+    let user
+    let partialActivity
+    beforeAll(() => {
+        user = {
+            username: 'test',
+            password: 'test'
+        }
+        partialActivity = {
+            _id: 1,
+            styles: {
+                backgroundColor: 'green'
+            },
+            published: false
+        }
+    })
+    test("If successful, activity should be updated in the db", async done => {
+        let result = await db.updateActivity(partialActivity,1,user)
+        expect(result.published).toBe(false)
+        done()
+    })
+})
