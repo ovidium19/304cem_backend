@@ -149,3 +149,9 @@ export async function getActivitiesAnsweredByUser(username,page = 1,perPage = 5,
         resolve(results)
     })
 }
+export async function getFiveRandomActivities(user,options){
+    return new Promise((resolve,reject) => {
+        let results = activities.slice(0,5)
+        resolve(results)
+    })
+}

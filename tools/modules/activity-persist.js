@@ -60,3 +60,19 @@ export async function getActivitiesAnsweredByUser(username,page = 1,perPage = 5,
     await client.close()
     return result
 }
+export async function getFiveRandomActivities(user = adminUser,test = {on: false}) {
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    const options = {
+        test
+    }
+    let cursor = await collection.aggregate([
+        { $project: { "answers" : 0 } },
+        { $match: { published: true } },
+        { $sample: { size: 5 }}
+    ],options)
+    let results = await cursor.toArray()
+    await client.close()
+    return results
+}

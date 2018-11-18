@@ -234,6 +234,10 @@ class Collection {
                     return new Cursor(data.values)
                     break
                 }
+                case 'getFiveRandomActivities': {
+                    let results = db_data.slice(0,5)
+                    return new Cursor(results)
+                }
                 default:
                     return new Cursor([])
             }

@@ -261,4 +261,30 @@ describe('GET /api/v1/activities/answered/:username', () => {
         done()
     })
 })
+describe('GET /api/v1/activities/randomset', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+		//expect.assertions(2)
+        const response = await request(server).get('/api/v1/activities/randomset')
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		expect(response.header['content-type']).toContain('application/json')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+		const response = await request(server).get('/api/v1/activities/randomset')
+			.set('error', 'foo')
+        expect(response.status).toEqual(status.NOT_FOUND)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('Successfully calling should return a known value', async done => {
+        const response = await request(server).get('/api/v1/activities/randomset')
+        expect(response.body.length).toBe(5)
+        done()
+    })
+})
 

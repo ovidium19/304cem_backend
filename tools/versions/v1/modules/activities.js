@@ -15,6 +15,20 @@ app.use( async(ctx, next) => {
 	await next()
 })
 const router = new Router()
+router.get('/randomset', async ctx => {
+    ctx.set('Allow','GET')
+    try {
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
+        let page = ctx.query['page']
+        let res = await dba.getFiveRandomActivities()
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.NOT_FOUND
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
 router.get('/:id', async ctx => {
     ctx.set('Allow','GET')
     try {
@@ -57,6 +71,7 @@ router.get('/answered/:username', async ctx => {
 		ctx.body = {status: 'error', message: err.message}
     }
 })
+
 app.use(router.routes())
 app.use(router.allowedMethods())
 

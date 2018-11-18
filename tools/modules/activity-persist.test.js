@@ -71,3 +71,19 @@ describe("Testing db.getActivitiesAnsweredByUser",() => {
         done()
     })
 })
+describe("Testing db.getFiveRandomActivities",() => {
+    let user
+    let options
+    beforeAll(() => {
+        user = {
+            username: 'test',
+            password: 'test'
+        }
+        options = {on: true, case: 'getFiveRandomActivities'}
+    })
+    test("If successful, result should be a list of  5 activities", async done => {
+        let result = await db.getFiveRandomActivities(user,options)
+        expect(result.length).toBe(5)
+        done()
+    })
+})
