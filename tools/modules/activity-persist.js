@@ -1,11 +1,15 @@
 import {MongoClient, ObjectID} from  'mongodb'
 import axios from 'axios'
 import dotenv from 'dotenv'
-import {connect, capitalize} from './utils'
+import {connect, capitalize, schemaCheck} from './utils'
 dotenv.config()
 const adminUser = {
     username: process.env.MONGO_ADMIN_USERNAME,
     password: process.env.MONGO_ADMIN_PASS
+}
+const activitySchema = {
+    username: '',
+    name: ''
 }
 export async function getActivityById(id,user = adminUser) {
     let client = await connect(user)
@@ -75,4 +79,14 @@ export async function getFiveRandomActivities(user = adminUser,test = {on: false
     let results = await cursor.toArray()
     await client.close()
     return results
+}
+export async function postActivity(activity, user = adminUser){
+    if (!(schemaCheck(activitySchema,activity))) throw new Error('Activity doesn\'t match schema')
+
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    let result = await collection.insertOne(activity)
+    await client.close()
+    return { id: result.insertedId }
 }

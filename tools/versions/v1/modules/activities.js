@@ -15,6 +15,19 @@ app.use( async(ctx, next) => {
 	await next()
 })
 const router = new Router()
+router.post('/create', async ctx => {
+    ctx.set('Allow', 'POST')
+    try {
+        let page = ctx.query['page']
+        let res = await dba.postActivity(ctx.request.body)
+        ctx.status = status.ACCEPTED
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.UNPROCESSABLE_ENTITY
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
 router.get('/randomset', async ctx => {
     ctx.set('Allow','GET')
     try {

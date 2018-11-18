@@ -1,4 +1,4 @@
-import { capitalize } from '../utils'
+import { capitalize, schemaCheck } from '../utils'
 const users = [
     {
         username: 'ovidium19',
@@ -118,10 +118,6 @@ const activitySchema = {
     username: '',
     name: ''
 }
-function schemaCheck(schema,data) {
-     return Object.keys(schema).reduce((p,c,i) => p && data.hasOwnProperty(c), true)
-
-}
 export async function getActivityById(id,user){
     return new Promise((resolve,reject) => {
         resolve(activities.find(a => a['_id'] == id))
@@ -153,5 +149,12 @@ export async function getFiveRandomActivities(user,options){
     return new Promise((resolve,reject) => {
         let results = activities.slice(0,5)
         resolve(results)
+    })
+}
+
+export async function postActivity(activity,user) {
+    if (!(schemaCheck(activitySchema,activity))) throw new Error('Activity doesn\'t match schema')
+    return new Promise((resolve,reject) => {
+         resolve({ id: activities.length + 1})
     })
 }
