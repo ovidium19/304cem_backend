@@ -302,7 +302,6 @@ describe('POST /api/v1/activities/create', () => {
         const response = await request(server).post('/api/v1/activities/create')
                                             .send({id: 1, name: 'Bel'})
                                             .expect(status.UNPROCESSABLE_ENTITY)
-        console.log(response.body)
         expect(response.body).toEqual(expect.objectContaining({message:'Activity doesn\'t match schema' }))
         done()
     })
@@ -318,6 +317,67 @@ describe('POST /api/v1/activities/create', () => {
                                             .send(activity)
                                             .expect(status.ACCEPTED)
         expect(response.body).toEqual(expect.objectContaining(expectedResult))
+        done()
+    })
+})
+describe('PUT /api/v1/activities/:id', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+        const response = await request(server).put('/api/v1/activities/1')
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('If activity is not found, error must be returned', async done => {
+        let partialActivity = {
+            published: false
+        }
+        const response = await request(server).put('/api/v1/activities/10')
+                                            .send(partialActivity)
+                                            .expect(status.NOT_FOUND)
+        done()
+
+    })
+    test('if successful, return value should be the activity changed', async done => {
+        let partialActivity = {
+            published: false
+        }
+        const response = await request(server).put('/api/v1/activities/1')
+                                            .send(partialActivity)
+                                            .expect(status.OK)
+        expect(response.body.published).toEqual(false)
+        done()
+    })
+})
+describe('PUT /api/v1/activities/:id/answer', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+        const response = await request(server).put('/api/v1/activities/10/answer').expect(status.NOT_FOUND)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('If activity is not found, error must be returned', async done => {
+        let answer = {
+            correct: true
+        }
+        const response = await request(server).put('/api/v1/activities/10/answer')
+                                            .send(answer)
+                                            .expect(status.NOT_FOUND)
+        done()
+
+    })
+    test('if successful, return value should be the activity with the answer pushed', async done => {
+        let answer = {
+            correct: true
+        }
+        const response = await request(server).put('/api/v1/activities/1/answer')
+                                            .send(answer)
+                                            .expect(status.OK)
+        console.log(response.body)
+        expect(response.body.answers.length).toEqual(3)
         done()
     })
 })

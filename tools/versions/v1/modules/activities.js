@@ -43,11 +43,23 @@ router.get('/randomset', async ctx => {
     }
 })
 router.get('/:id', async ctx => {
-    ctx.set('Allow','GET')
+    ctx.set('Allow','GET PUT')
     try {
         if (ctx.get('error')) throw new Error(ctx.get('error'))
 
         let res = await dba.getActivityById(ctx.params.id)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.NOT_FOUND
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
+router.put('/:id', async ctx => {
+    ctx.set('Allow','GET PUT')
+    try {
+        let res = await dba.updateActivity(ctx.request.body, ctx.params.id)
         ctx.status = status.OK
         ctx.body = res
     }
@@ -76,6 +88,18 @@ router.get('/answered/:username', async ctx => {
         if (ctx.get('error')) throw new Error(ctx.get('error'))
         let page = ctx.query['page']
         let res = await dba.getActivitiesAnsweredByUser(ctx.params.username,page ? page : 1)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.NOT_FOUND
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
+router.put('/:id/answer', async ctx => {
+    ctx.set('Allow','GET PUT')
+    try {
+        let res = await dba.postAnswer(ctx.request.body, ctx.params.id)
         ctx.status = status.OK
         ctx.body = res
     }

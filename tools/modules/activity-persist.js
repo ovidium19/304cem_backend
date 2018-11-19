@@ -90,3 +90,35 @@ export async function postActivity(activity, user = adminUser){
     await client.close()
     return { id: result.insertedId }
 }
+export async function updateActivity(partialActivity, id,  user = adminUser){
+
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    const updateFields = Object.keys(partialActivity).reduce((p,c,i) => {
+            if (c == '_id') return p
+            if (c == 'styles') {
+                Object.keys(partialActivity[c]).map(prop => {
+                    p[`styles.${prop}`] = partialActivity[c][prop]
+                })
+                return p
+            }
+            p[c] = partialActivity[c]
+            return p
+    }, {})
+    const updates = { $set: updateFields}
+    const filter = {'_id': ObjectID.createFromHexString(id)}
+    let result = await collection.updateOne(filter,updates)
+    await client.close()
+    return result['result']
+}
+export async function postAnswer(answer, activityId, user = adminUser) {
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    const filter = {'_id': ObjectID.createFromHexString(activityId)}
+    const updates = { $push: {"answers" : answer}}
+    let result = await collection.updateOne(filter,updates)
+    await client.close()
+    return result['result']
+}
