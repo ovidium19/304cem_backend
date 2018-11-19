@@ -82,6 +82,20 @@ router.get('/category/:cat', async ctx => {
 		ctx.body = {status: 'error', message: err.message}
     }
 })
+router.get('/username/:name', async ctx => {
+    ctx.set('Allow','GET')
+    try {
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
+        let page = ctx.query['page']
+        let res = await dba.getActivitiesByUsername(ctx.params.name,page ? page : 1)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.NOT_FOUND
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
 router.get('/answered/:username', async ctx => {
     ctx.set('Allow','GET')
     try {

@@ -20,7 +20,7 @@ export async function getActivityById(id,user = adminUser) {
     return result
 
 }
-export async function getActivitiesByCategory(cat,page = 1,perPage = 5,user = adminUser,test = {on: false}) {
+export async function getActivitiesByCategory(cat,page = 1,perPage = 5,user = adminUser) {
     let client = await connect(user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
@@ -34,6 +34,21 @@ export async function getActivitiesByCategory(cat,page = 1,perPage = 5,user = ad
     }
 
     let cursor = await collection.find({'category': capitalize(cat)},options)
+    let result = await cursor.toArray()
+    await client.close()
+    return result
+}
+export async function getActivitiesByUsername(username,page = 1,perPage = 5,user = adminUser) {
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    const options = {
+        limit: perPage,
+        skip: (page-1) * perPage,
+        test
+    }
+
+    let cursor = await collection.find({'username': username},options)
     let result = await cursor.toArray()
     await client.close()
     return result

@@ -227,6 +227,41 @@ describe('GET /api/v1/activities/catgory/:cat', () => {
         done()
     })
 })
+describe('GET /api/v1/activities/username/:name', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+		//expect.assertions(2)
+        const response = await request(server).get('/api/v1/activities/username/unknown')
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		expect(response.header['content-type']).toContain('application/json')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+		const response = await request(server).get('/api/v1/activities/username/unknown')
+			.set('error', 'foo')
+        expect(response.status).toEqual(status.NOT_FOUND)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('Successfully calling should return a known value', async done => {
+        const response = await request(server).get('/api/v1/activities/username/test')
+        expect(response.body[0]).toEqual(expect.objectContaining({
+            username: 'test'
+        }))
+        expect(response.body.length).toBe(5)
+        done()
+    })
+    test('Pagination works', async done => {
+        const response = await request(server).get('/api/v1/activities/username/test?page=2')
+        expect(response.body[0]['_id']).toBe(6)
+        expect(response.body.length).toBe(2)
+        done()
+    })
+})
 
 describe('GET /api/v1/activities/answered/:username', () => {
     beforeAll(runBeforeAll)

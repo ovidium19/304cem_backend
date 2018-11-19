@@ -48,6 +48,19 @@ describe("Testing db.getActivitiesByCategory",() => {
         done()
     })
 })
+describe("Testing db.getActivitiesByUsername",() => {
+    test("If successful, result should be a list of activities", async done => {
+        let result = await db.getActivitiesByUsername('test')
+        expect(result[0].username).toBe('test')
+        expect(result.length).toBe(5)
+        done()
+    })
+    test("If page is specified, expect results to have pagination", async done => {
+        let result = await db.getActivitiesByUsername('test',2)
+        expect(result[0]['_id']).toBe(6)
+        done()
+    })
+})
 describe("Testing db.getActivitiesAnsweredByUser",() => {
     let user
     let options
