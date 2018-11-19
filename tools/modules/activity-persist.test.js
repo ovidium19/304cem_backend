@@ -128,3 +128,24 @@ describe("Testing db.updateActivity",() => {
         done()
     })
 })
+describe("Testing db.postAnswer",() => {
+    let user
+    let answer
+    beforeAll(() => {
+        user = {
+            username: 'test',
+            password: 'test'
+        }
+        answer = {
+           username: 'testuser',
+           anon: false,
+           time: 12,
+           finished: true
+        }
+    })
+    test("If successful, answer should be pushed to the array", async done => {
+        let result = await db.postAnswer(answer,1,user)
+        expect(result.answers.length).toBe(3)
+        done()
+    })
+})

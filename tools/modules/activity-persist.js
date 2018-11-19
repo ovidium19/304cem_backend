@@ -112,3 +112,13 @@ export async function updateActivity(partialActivity, id,  user = adminUser){
     await client.close()
     return result['result']
 }
+export async function postAnswer(answer, activityId, user = adminUser) {
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    const filter = {'_id': ObjectID.createFromHexString(activityId)}
+    const updates = { $push: {"answers" : answer}}
+    let result = await collection.updateOne(filter,updates)
+    await client.close()
+    return result['result']
+}

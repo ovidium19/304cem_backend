@@ -249,18 +249,22 @@ class Collection {
     updateOne(filter,updates,options) {
         let db_data = this.data.s.documents
         let elem = db_data.find(e => e['_id'] == filter['_id'])
+        let res = Object.assign({},elem)
         Object.keys(updates).forEach( op => {
             switch (op) {
                 case '$set': {
                     //only updating the published field
-                    elem['published'] = updates[op]['published']
+                    res['published'] = updates[op]['published']
+                    break
+                }
+                case '$push': {
+                    res.answers.push(updates[op]['answers'])
                     break
                 }
                 default: break
             }
         })
-        console.log(elem)
-        return {result: elem}
+        return {result: res}
     }
 }
 

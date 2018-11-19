@@ -96,6 +96,18 @@ router.get('/answered/:username', async ctx => {
 		ctx.body = {status: 'error', message: err.message}
     }
 })
+router.put('/:id/answer', async ctx => {
+    ctx.set('Allow','GET PUT')
+    try {
+        let res = await dba.postAnswer(ctx.request.body, ctx.params.id)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.NOT_FOUND
+		ctx.body = {status: 'error', message: err.message}
+    }
+})
 
 app.use(router.routes())
 app.use(router.allowedMethods())

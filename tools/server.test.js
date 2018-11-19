@@ -350,4 +350,35 @@ describe('PUT /api/v1/activities/:id', () => {
         done()
     })
 })
+describe('PUT /api/v1/activities/:id/answer', () => {
+    beforeAll(runBeforeAll)
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+        const response = await request(server).put('/api/v1/activities/10/answer').expect(status.NOT_FOUND)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('If activity is not found, error must be returned', async done => {
+        let answer = {
+            correct: true
+        }
+        const response = await request(server).put('/api/v1/activities/10/answer')
+                                            .send(answer)
+                                            .expect(status.NOT_FOUND)
+        done()
+
+    })
+    test('if successful, return value should be the activity with the answer pushed', async done => {
+        let answer = {
+            correct: true
+        }
+        const response = await request(server).put('/api/v1/activities/1/answer')
+                                            .send(answer)
+                                            .expect(status.OK)
+        console.log(response.body)
+        expect(response.body.answers.length).toEqual(3)
+        done()
+    })
+})
 
