@@ -3,7 +3,6 @@ import axios from 'axios'
 import md5 from 'md5'
 import dotenv from 'dotenv'
 import {connect, digestGenerateHeader} from './utils'
-import * as activities from './activity-persist'
 dotenv.config()
 
 let calls = 0
@@ -16,8 +15,6 @@ export async function createUser(userData) {
     if (!(userData.hasOwnProperty('username')) || !(userData.hasOwnProperty('password'))){
         return Promise.reject({message: 'Not the right data'})
     }
-    let client
-    let result
     const adminData = {
         username: process.env.MONGO_USERNAME,
         password: process.env.MONGO_APIKEY
