@@ -3,7 +3,7 @@ import koaBP from 'koa-bodyparser'
 import Router from 'koa-router'
 import status from 'http-status-codes'
 import * as db from '../../../modules/db-persist'
-import basicAuth from './basicAuth'
+
 
 /*
 POST /signup
@@ -15,22 +15,10 @@ PUT /:username
 
 const app = new koa()
 app.use(koaBP())
-app.use( async(ctx, next) => {
-    ctx.set('Access-Control-Allow-Origin', '*')
-    ctx.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
-    ctx.set('Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS')
-    ctx.set('content-type','application/json')
-	await next()
-})
-const port = 3030
+
+
 const router = new Router()
-router.use(async (ctx,next) => {
-    await next().catch(err => {
-        ctx.status = status.UNAUTHORIZED
-        ctx.body = {status: status.UNAUTHORIZED, message: err.message}
-    })
-})
-router.use(basicAuth)
+
 
 router.get('/',async ctx => {
     ctx.set('Allow','GET')
@@ -66,6 +54,7 @@ router.get('/login',async ctx => {
     const user = ctx.state.user
     try{
         let res = await db.getUserByUsername(user)
+        console.log(res)
         ctx.body = res
         ctx.status = status.OK
     }

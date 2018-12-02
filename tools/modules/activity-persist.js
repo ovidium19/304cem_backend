@@ -11,6 +11,33 @@ const activitySchema = {
     username: '',
     name: ''
 }
+export async function getActivities(options) {
+    let client =  await connect(options.user)
+
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    let aggPipe =  [
+        { $match: { published: true } }
+        ]
+    if (options.hasOwnProperty('random')){
+        aggPipe.push({$sample: {size: 5}})
+    }
+    else {
+        if (options.hasOwnProperty('category')){
+            aggPipe[0].$match.category = options.category
+        }
+
+        if (options.hasOwnProperty('page') && options.hasOwnProperty('limit')){
+            aggPipe.push({$skip: (options.page-1) * parseInt(options.limit)})
+            aggPipe.push({$limit: parseInt(options.limit)})
+        }
+    }
+    let cursor = await collection.aggregate(aggPipe,options)
+    let results = await cursor.toArray()
+    await cursor.close()
+    await client.close()
+    return results
+}
 export async function getActivityById(id,user = adminUser) {
     let client = await connect(user)
     let db = await client.db(process.env.MONGO_DBNAME)
