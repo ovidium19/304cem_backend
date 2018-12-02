@@ -22,7 +22,7 @@ router.get('/',async ctx => {
     }
 
 })
-app.use(mount('/user',users))
+app.use(mount('/users',users))
 app.use(mount('/activities',activities))
 app.use(router.routes())
 app.use(router.allowedMethods())

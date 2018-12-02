@@ -23,21 +23,22 @@ db-persist should have the following API:
 describe('Testing connection', () => {
     const correctUser = {
         username: 'test',
-        password: 'test'
+        password: 'test',
+
     }
     const wrongUser = {
         username: 'wrong',
         password: 'wrong'
     }
     test('If authentication succeeds, user should be available', async done => {
-        const result = await db.getUserByUsername('test')
+        const result = await db.getUserByUsername(correctUser)
         expect(result['username']).toBe('test')
         done()
     })
 
     test('If wrong user, authentication fails', async done => {
         try{
-            const result = await db.getUserByUsername('test',wrongUser)
+            const result = await db.getUserByUsername(wrongUser)
         }
         catch(err){
             expect(err.message).toBe('Authentication failed')
@@ -64,19 +65,6 @@ describe('Testing createUser', () => {
             })
         })
     })
-    test('If successfull, result should contain user information stored in public db', async done => {
-        const userData = {
-            username: 'test2',
-            password: 'test'
-        }
-        const expectedResult = {
-            insertedId: userData.username.padStart(12,0)
-        }
-        const result = await db.createUser(userData)
-        console.log(result)
-        expect(result).toEqual(expect.objectContaining(expectedResult))
-        done()
-    })
     test('if userData does not have the right schema, provide error message', async done => {
         const userData = {
             nofields: true
@@ -85,10 +73,24 @@ describe('Testing createUser', () => {
             const result = await db.createUser(userData)
         }
         catch(result){
-            expect(result.message).toBe('Not the right data')
+            expect(result.message).toBe('Missing fields')
         }
         done()
     })
+    test('If successfull, result should contain user information stored in public db', async done => {
+        const userData = {
+            username: 'test2',
+            password: 'test',
+            email: 'test'
+        }
+        const expectedResult = {
+            id: 2
+        }
+        const result = await db.createUser(userData)
+        expect(result).toEqual(expect.objectContaining(expectedResult))
+        done()
+    })
+
 })
 
 

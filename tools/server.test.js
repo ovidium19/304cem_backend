@@ -1,11 +1,10 @@
 jest.mock('mongodb')
 jest.mock('./modules/db-persist')
 jest.mock('./modules/activity-persist')
-import * as db from './modules/db-persist'
-import * as dba from './modules/activity-persist'
 import server from './server'
 import status from 'http-status-codes'
 import request from 'supertest'
+import btoa from 'btoa'
 /*
 Normally I would have a test file for each different module, but because in each other module I would
 have to import the server script, then the server script will attempt to listen on the same port every time.
@@ -53,118 +52,163 @@ describe('GET /api', () => {
 		done()
 	})
 })
-describe('GET /api/v1', () => {
-    beforeAll(runBeforeAll)
-
-    test('check common response headers', async done => {
-		//expect.assertions(2)
-        const response = await request(server).get('/api/v1')
-        //expect(response.status).toBe(status.OK)
-		expect(response.header['access-control-allow-origin']).toBe('*')
-		expect(response.header['content-type']).toContain('application/json')
-		done()
-    })
-    test('check for NOT_FOUND status if database down', async done => {
-		const response = await request(server).get('/api/v1')
-			.set('error', 'foo')
-        expect(response.status).toEqual(status.NOT_FOUND)
-		const data = JSON.parse(response.text)
-		expect(data.message).toBe('foo')
-		done()
-    })
-    test('check body for api/v1', async done => {
-        const response = await request(server).get('/api/v1')
-        expect(response.body).toEqual(expect.objectContaining({path: expect.any(String)}))
-        done()
-    })
-})
-
-describe('GET /api/v1/user', () => {
+describe('Test unauthorized access to /users', () => {
     beforeAll(runBeforeAll)
     afterAll(runAfterAll)
 
     test('check common response headers', async done => {
 		//expect.assertions(2)
-        const response = await request(server).get('/api/v1/user')
+        const response = await request(server).get('/api/v1/users')
         //expect(response.status).toBe(status.OK)
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		expect(response.header['content-type']).toContain('application/json')
 		done()
     })
+    test('Check that route is restricted by lack of Authorization header', async done => {
+        const response = await request(server).get('/api/v1/users')
+        expect(response.status).toEqual(status.UNAUTHORIZED)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('Authorization header is not present')
+		done()
+    })
+})
+describe('GET /api/v1/users authenticated', () => {
+    let authHeader
+    let authHeaderWrongUser
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        authHeaderWrongUser = 'Basic ' + btoa('wrong:wrong')
+    })
+    afterAll(runAfterAll)
+
+
     test('check for NOT_FOUND status if database down', async done => {
-		const response = await request(server).get('/api/v1/user')
-			.set('error', 'foo')
+		const response = await request(server).get('/api/v1/users')
+			.set('error', 'foo').set('Authorization',authHeader)
         expect(response.status).toEqual(status.NOT_FOUND)
 		const data = JSON.parse(response.text)
 		expect(data.message).toBe('foo')
 		done()
     })
-    test('check body for api/v1', async done => {
-        const response = await request(server).get('/api/v1/user')
+    test('check body for api/v1/users', async done => {
+        const response = await request(server).get('/api/v1/users').set('Authorization', authHeader)
         expect(response.body).toEqual(expect.objectContaining({
             path: '/api/v1/user - path'
         }))
         done()
     })
 })
-describe('POST /api/v1/user/create', () => {
-    beforeAll(runBeforeAll)
+describe('POST /api/v1/users/signup', () => {
+    let authHeader
+    let newUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        newUserHeader = 'Basic ' + btoa('wrong:wrong')
+    })
     afterAll(runAfterAll)
 
     test('Check common headers' , async done => {
         //expect.assertions(2)
-        const response = await request(server).post('/api/v1/user/create')
-                            .expect(status.UNPROCESSABLE_ENTITY)
+        const response = await request(server).post('/api/v1/users/signup')
+                            .expect(status.UNAUTHORIZED)
         //expect(response.status).toBe(status.OK)
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		done()
     })
     test('If the schema is not correct, return error', async done => {
-        const response = await request(server).post('/api/v1/user/create')
+        const response = await request(server).post('/api/v1/users/signup')
                             .set('Accept', 'application/json')
-                            .send({username: 'testUser'})
+                            .set('Authorization', authHeader)
                             .expect(status.UNPROCESSABLE_ENTITY)
-        expect(response.body.message).toEqual('Not the right data')
+        expect(response.body.data).toEqual('Missing fields')
+        done()
+    })
+    test('If username already exists, we get error', async done => {
+        const response = await request(server).post('/api/v1/users/signup')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', authHeader)
+                                .send({email: 'ovidium10@yahoo.com'})
+                                .expect(status.UNPROCESSABLE_ENTITY)
+        expect(response.body.data).toEqual('Username already exists')
         done()
     })
     test('If successful, user should be added to the database and returned', async done => {
-        const response = await request(server).post('/api/v1/user/create')
-                            .set('Accept', 'application/json')
-                            .send({username: 'testUser2',password: 'test'})
-                            .expect(status.CREATED)
-        expect(response.body).toEqual(expect.objectContaining({username: 'testUser2'}))
+        const response = await request(server).post('/api/v1/users/signup')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', newUserHeader)
+                                .send({email: 'ovidium10@yahoo.com'})
+                                .expect(status.CREATED)
+        expect(response.body).toEqual(expect.objectContaining({username: 'wrong'}))
         done()
     })
 })
-describe('GET /api/v1/user/:name', () => {
-    beforeAll(runBeforeAll)
+
+describe('GET /login', () => {
+    let authHeader
+    let wrongUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
     afterAll(runAfterAll)
 
-    test('check common response headers', async done => {
-		//expect.assertions(2)
-        const response = await request(server).get('/api/v1/user/ovidium19')
+    test('Check common headers' , async done => {
+        //expect.assertions(2)
+        const response = await request(server).get('/api/v1/users/login')
+                            .expect(status.UNAUTHORIZED)
         //expect(response.status).toBe(status.OK)
 		expect(response.header['access-control-allow-origin']).toBe('*')
-		expect(response.header['content-type']).toContain('application/json')
 		done()
     })
-    test('check for NOT_FOUND status if database down', async done => {
-		const response = await request(server).get('/api/v1/user/ovidium19')
-			.set('error', 'foo')
-        expect(response.status).toEqual(status.NOT_FOUND)
-		const data = JSON.parse(response.text)
-		expect(data.message).toBe('foo')
-		done()
+    test('If successful, user exists and we get its data back', async done => {
+        const response = await request(server).get('/api/v1/users/login')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', authHeader)
+                                .expect(status.OK)
+        expect(response.body).toEqual(expect.objectContaining({email: 'test'}))
+        done()
     })
-    test('check body for api/v1/user/:name', async done => {
-        const response = await request(server).get('/api/v1/user/ovidium19')
-        expect(response.body).toEqual(expect.objectContaining({
-            username: 'ovidium19'
-        }))
+    test('If user doesn\'t exist, expect UNAUTHORIZED', async done => {
+        const response = await request(server).get('/api/v1/users/login')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', wrongUserHeader)
+                                .expect(status.UNAUTHORIZED)
+        expect(response.body.message).toEqual('Username not found')
         done()
     })
 })
+describe('HEAD /login', () => {
+    let authHeader
+    let wrongUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong3:wrong3')
+    })
+    afterAll(runAfterAll)
 
+    test('Check common headers' , async done => {
+        //expect.assertions(2)
+        const response = await request(server).head('/api/v1/users/login')
+                            .expect(status.UNAUTHORIZED)
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('If successful, user exists and we get confirmation', async done => {
+        const response = await request(server).head('/api/v1/users/login')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', authHeader)
+                                .expect(status.OK)
+        done()
+    })
+    test('If user doesn\'t exist, expect UNAUTHORIZED', async done => {
+        const response = await request(server).head('/api/v1/users/login')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', wrongUserHeader)
+                                .expect(status.UNAUTHORIZED)
+        done()
+    })
+})
 describe('GET /api/v1/activities/:id', () => {
     beforeAll(runBeforeAll)
     afterAll(runAfterAll)
