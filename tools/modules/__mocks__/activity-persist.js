@@ -115,44 +115,19 @@ const activities =  [
 ]
 const activitySchema = {
     username: '',
-    name: ''
+    name: '',
+    published: ''
 }
 export async function getActivityById(options){
     return new Promise((resolve,reject) => {
         resolve([activities.find(a => a['_id'] == options.id)])
     })
 }
-export async function getActivitiesByCategory(cat,page = 1,perPage = 5, user){
 
-    return new Promise((resolve,reject) => {
-        let results = activities.filter((elem,index) => {
-            return (index >= ((page-1) * perPage) && index<=(page*perPage-1) && elem.category == capitalize(cat))
-        })
-        resolve(results)
-    })
-}
-export async function getActivitiesAnsweredByUser(username,page = 1,perPage = 5, user, options){
 
-    return new Promise((resolve,reject) => {
-        let results = activities.reduce((p,c,i) => {
-            let cond = c.answers.find(a => a.username == username )
-            if ( i >= ((page-1) * perPage) && i <= (page*perPage-1) && cond ) {
-                return p.concat(Object.assign({},c,{answers: [cond]}))
-            }
-            return p
-        }, [])
-        resolve(results)
-    })
-}
-export async function getFiveRandomActivities(user,options){
-    return new Promise((resolve,reject) => {
-        let results = activities.slice(0,5)
-        resolve(results)
-    })
-}
-
-export async function postActivity(activity,user) {
-    if (!(schemaCheck(activitySchema,activity))) throw new Error('Activity doesn\'t match schema')
+export async function postActivity(options) {
+    let schema = schemaCheck(activitySchema,options.data)
+    if (!(schema.correct)) throw new Error(schema.message)
     return new Promise((resolve,reject) => {
          resolve({ id: activities.length + 1})
     })
@@ -181,12 +156,11 @@ export async function getActivitiesByUsername(options) {
         })
    })
 }
-export async function postAnswer(answer,id,user) {
+export async function postAnswer(options) {
     return new Promise((resolve,reject) => {
-         let elem = activities.find(a => a['_id'] == id)
-         if (!elem) reject('Not found')
+         let elem = activities.find(a => a['_id'] == options.id)
          let res = Object.assign({},elem)
-         res.answers.push(answer)
+         res.answers.push(options.data)
          resolve(res)
     })
 }

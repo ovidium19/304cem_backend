@@ -10,11 +10,9 @@ const app = new koa()
 app.use(koabp())
 const router = new Router()
 
-router.get('/:username', async ctx => {
+router.get('/', async ctx => {
     /*
     query:
-        random=true .. random courses
-        category= .. specify category
         page= .. specify page number
         limit = .. how many items per page
     */
@@ -25,7 +23,7 @@ router.get('/:username', async ctx => {
             user: ctx.state.user,
             ...ctx.query
         }
-       let res = await dbr.getActivities(options)
+       let res = await dbr.getResults(options)
        ctx.status = status.OK
        ctx.body = res
    }

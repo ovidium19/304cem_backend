@@ -22,7 +22,8 @@ async function getClientAndCollection(user,dbName,colName) {
     return {client, collection}
 }
 export async function createUser(userData) {
-    if (!schemaCheck(userSchema, userData)) return Promise.reject({message: 'Missing fields'})
+    let schema = schemaCheck(userSchema,userData)
+    if (!(schema.correct)) throw new Error(schema.message)
     const adminData = {
         username: process.env.MONGO_USERNAME,
         password: process.env.MONGO_APIKEY
@@ -79,8 +80,4 @@ export async function getUserByUsername(user){
     return result
 }
 
-export async function headlessConnection(user){
-    let { client } = await getClientAndCollection(user,process.env.MONGO_DBUSERS, process.env.MONGO_DBUSERS_COLLECTION)
-    await client.close()
-    return true
-}
+

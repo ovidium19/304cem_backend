@@ -73,7 +73,7 @@ describe('Testing createUser', () => {
             const result = await db.createUser(userData)
         }
         catch(result){
-            expect(result.message).toBe('Missing fields')
+            expect(result.message).toBe('Missing fields: username password email')
         }
         done()
     })
@@ -84,7 +84,7 @@ describe('Testing createUser', () => {
             email: 'test'
         }
         const expectedResult = {
-            id: 2
+            id: 1
         }
         const result = await db.createUser(userData)
         expect(result).toEqual(expect.objectContaining(expectedResult))

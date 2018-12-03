@@ -41,9 +41,6 @@ export async function digestGenerateHeader(options,user,calls) {
         return authHeader
     })
 }
-export function capitalize(s) {
-    return s[0].toUpperCase() + s.slice(1)
-}
 export function schemaCheck(schema,data) {
     let error = false
     let errors = Object.keys(schema).reduce((p,c,i) => {

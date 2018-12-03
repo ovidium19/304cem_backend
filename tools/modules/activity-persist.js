@@ -121,32 +121,7 @@ export async function getActivitiesByUsername(options) {
         data: results
     }
 }
-export async function getActivitiesAnsweredByUser(username,page = 1,perPage = 5,user = adminUser,test = {on: false}) {
-    let client = await connect(user)
-    let db = await client.db(process.env.MONGO_DBNAME)
-    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
-    const options = {
-        limit: perPage,
-        skip: (page-1) * perPage,
-        test
-    }
 
-    let cursor = await collection.aggregate([
-        { $unwind: "$answers"},
-        {
-            $match: { "answers.username": username}
-        },
-        {
-            $skip: (page-1) * perPage
-        },
-        {
-            $limit: perPage
-        }
-    ],options)
-    let result = await cursor.toArray()
-    await client.close()
-    return result
-}
 
 export async function postActivity(options){
     let { user, data, ...dbOptions } = options
@@ -229,13 +204,14 @@ export async function publishActivity(options) {
     return result
 }
 
-export async function postAnswer(answer, activityId, user = adminUser) {
+export async function postAnswer(options) {
+    let {data, user, id, ...dbOptions} = options
     let client = await connect(user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
-    const filter = {'_id': ObjectID.createFromHexString(activityId)}
-    const updates = { $push: {"answers" : answer}}
-    let result = await collection.updateOne(filter,updates)
+    const filter = {'_id': ObjectID.createFromHexString(id)}
+    const updates = { $push: {"answers" : data}}
+    let result = await collection.updateOne(filter,updates,dbOptions)
     await client.close()
     return result['result']
 }

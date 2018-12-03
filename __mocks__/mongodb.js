@@ -295,7 +295,25 @@ const data = [
             name: 'results',
             documents: [
                 {
-                    id: 2,
+                    _id: 1,
+                    username: 'test',
+                    passed: 1,
+                    answers: []
+                },
+                {
+                    _id: 2,
+                    username: 'test',
+                    passed: 1,
+                    answers: []
+                },
+                {
+                    _id: 3,
+                    username: 'test',
+                    passed: 1,
+                    answers: []
+                },
+                {
+                    _id: 4,
                     username: 'test',
                     passed: 1,
                     answers: []
@@ -330,6 +348,13 @@ class Collection {
     }
     insertOne(document, options){
         let db_data = this.data.s.documents
+        if (!(options)) {
+            // createUser - postUserData
+            return Promise.resolve({
+                ops: {},
+                insertedId: 1
+            })
+        }
         switch ( options.test.func) {
             case 'postActivity': {
                 return new Promise((resolve,reject) => {
@@ -415,7 +440,8 @@ class Collection {
                 let results = db_data.slice(0,5)
                 return new Cursor(results)
             }
-            case 'getActivitiesByUsername': {
+            case 'getActivitiesByUsername':
+            case 'getResults':  {
 
                 if (options.hasOwnProperty('page') && options.hasOwnProperty('limit')) {
                     let {page, limit} = options

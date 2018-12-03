@@ -127,29 +127,7 @@ describe("Testing db.getActivityById",() => {
     })
 
 })
-describe("Testing db.getActivitiesAnsweredByUser",() => {
-    let user
-    let options
-    beforeAll(() => {
-        user = {
-            username: 'test',
-            password: 'test'
-        }
-        options = {on: true, func: 'getActivitiesAnsweredByUser', username: 'test'}
-    })
-    test("If successful, result should be a list of activities", async done => {
-        let result = await db.getActivitiesAnsweredByUser('test',1,5,user,options)
-        expect(result.length).toBe(5)
-        expect(result[0].answers.length).toBe(1)
-        done()
-    })
-    test("If page is specified, expect results to have pagination", async done => {
-        let result = await db.getActivitiesAnsweredByUser('test',2,5,user,options)
-        expect(result.length).toBe(1)
-        expect(result[0]['_id']).toBe(6)
-        done()
-    })
-})
+
 
 describe("Testing db.postActivity",() => {
     let user
@@ -346,6 +324,7 @@ describe('Testing db.getActivitiesByUsername', () => {
 describe("Testing db.postAnswer",() => {
     let user
     let answer
+    let options
     beforeAll(() => {
         user = {
             username: 'test',
@@ -357,9 +336,17 @@ describe("Testing db.postAnswer",() => {
            time: 12,
            finished: true
         }
+        options = {
+            user,
+            data: answer,
+            id: 1,
+            test: {
+                func: 'postAnswer'
+            }
+        }
     })
     test("If successful, answer should be pushed to the array", async done => {
-        let result = await db.postAnswer(answer,1,user)
+        let result = await db.postAnswer(options)
         expect(result.answers.length).toBe(3)
         done()
     })
