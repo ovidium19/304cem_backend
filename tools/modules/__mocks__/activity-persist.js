@@ -173,6 +173,13 @@ export async function updateActivity(options) {
          resolve(Object.assign({}, elem))
     })
 }
+export async function publishActivity(options) {
+    return new Promise((resolve,reject) => {
+        let elem = Object.assign({},activities.find(a => a['_id'] == options.id))
+        elem['under_review'] = false
+        resolve(elem)
+   })
+}
 export async function postAnswer(answer,id,user) {
     return new Promise((resolve,reject) => {
          let elem = activities.find(a => a['_id'] == id)

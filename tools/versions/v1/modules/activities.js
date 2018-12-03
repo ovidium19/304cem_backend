@@ -89,7 +89,7 @@ router.put('/:id', async ctx => {
     }
 })
 router.put('/:id/publish', async ctx => {
-    ctx.set('Allow','GET PUT')
+    ctx.set('Allow','PUT')
     let options = {
         data: ctx.request.body,
         user: ctx.state.user,
@@ -97,6 +97,7 @@ router.put('/:id/publish', async ctx => {
         ...ctx.params
     }
     try {
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
         let res = await dba.publishActivity(options)
         ctx.status = status.OK
         ctx.body = res

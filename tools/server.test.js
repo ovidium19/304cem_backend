@@ -343,6 +343,45 @@ describe('PUT /api/v1/activities/:id', () => {
         done()
     })
 })
+describe('PUT /activities/:id/publish', () => {
+    let authHeader
+    let wrongUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+        const response = await request(server).put('/api/v1/activities/1/publish').set('Authorization', authHeader)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+        const response = await request(server).put('/api/v1/activities/1/publish')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.BAD_REQUEST)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('This is a protected resource', async done => {
+        const response = await request(server).put('/api/v1/activities/1/publish').expect(status.UNAUTHORIZED)
+        done()
+    })
+    test('if successful, return value should be the activity with under_review set to false', async done => {
+        let partialActivity = {
+            published: false
+        }
+        const response = await request(server).put('/api/v1/activities/1/publish')
+                                            .set('Authorization', authHeader)
+                                            .send(partialActivity)
+                                            .expect(status.OK)
+        expect(response.body.under_review).toEqual(false)
+        done()
+    })
+})
 describe('PUT /api/v1/activities/:id/answer', () => {
     beforeAll(runBeforeAll)
     afterAll(runAfterAll)
