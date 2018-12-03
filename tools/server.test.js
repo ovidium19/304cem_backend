@@ -210,30 +210,38 @@ describe('HEAD /login', () => {
     })
 })
 describe('GET /api/v1/activities/:id', () => {
-    beforeAll(runBeforeAll)
+    let authHeader
+    let wrongUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
     afterAll(runAfterAll)
 
     test('check common response headers', async done => {
-		//expect.assertions(2)
-        const response = await request(server).get('/api/v1/activities/1')
-        //expect(response.status).toBe(status.OK)
+        const response = await request(server).get('/api/v1/activities/1').set('Authorization', authHeader)
 		expect(response.header['access-control-allow-origin']).toBe('*')
-		expect(response.header['content-type']).toContain('application/json')
 		done()
     })
     test('check for NOT_FOUND status if database down', async done => {
-		const response = await request(server).get('/api/v1/activities/1')
-			.set('error', 'foo')
-        expect(response.status).toEqual(status.NOT_FOUND)
+        const response = await request(server).get('/api/v1/activities/1')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.BAD_REQUEST)
 		const data = JSON.parse(response.text)
 		expect(data.message).toBe('foo')
 		done()
     })
-    test('api/v1/activities/1 should return a known value', async done => {
+    test('This is a protected resource', async done => {
+        const response = await request(server).get('/api/v1/activities/1').expect(status.UNAUTHORIZED)
+        done()
+    })
+    test('if successful, return value should be a list with 1 item, the activity looked for', async done => {
         const response = await request(server).get('/api/v1/activities/1')
-        expect(response.body).toEqual(expect.objectContaining({
-            username: 'test'
-        }))
+                                            .set('Authorization', authHeader)
+                                            .expect(status.OK)
+        expect(response.body.length).toEqual(1)
+        expect(response.body[0]['_id']).toBe(1)
         done()
     })
 })

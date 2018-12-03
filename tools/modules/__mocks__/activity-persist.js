@@ -117,9 +117,9 @@ const activitySchema = {
     username: '',
     name: ''
 }
-export async function getActivityById(id,user){
+export async function getActivityById(options){
     return new Promise((resolve,reject) => {
-        resolve(activities.find(a => a['_id'] == id))
+        resolve([activities.find(a => a['_id'] == options.id)])
     })
 }
 export async function getActivitiesByCategory(cat,page = 1,perPage = 5, user){

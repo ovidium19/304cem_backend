@@ -74,16 +74,21 @@ router.get('/for/:username', async ctx => {
 })
 router.get('/:id', async ctx => {
     ctx.set('Allow','GET PUT')
+    let options = {
+        user: ctx.state.user,
+        ...ctx.query,
+        ...ctx.params
+    }
     try {
         if (ctx.get('error')) throw new Error(ctx.get('error'))
 
-        let res = await dba.getActivityById(ctx.params.id)
+        let res = await dba.getActivityById(options)
         ctx.status = status.OK
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
+        ctx.status = status.BAD_REQUEST
+		ctx.body = {status: status.BAD_REQUEST, message: err.message}
     }
 })
 router.put('/:id', async ctx => {

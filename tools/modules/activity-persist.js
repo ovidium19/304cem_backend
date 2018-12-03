@@ -51,13 +51,36 @@ export async function getActivities(options) {
     await client.close()
     return results
 }
-export async function getActivityById(id,user = adminUser) {
-    let client = await connect(user)
+export async function getActivityById(options) {
+    let { user, id, ...dbOptions } = options
+    let client = await connect(options.user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
-    let result = await collection.findOne({'_id': ObjectID.createFromHexString(id)})
+    let query = {'_id': ObjectID.createFromHexString(id)}
+    let aggPipe =  [
+        {
+            $match: query
+        },
+        {
+            $addFields: {
+            'avg_rating': { $avg: '$feedback.rating' },
+            'avg_time': { $avg: '$answers.time'},
+            'avg_passrate': { $multiply: [{ $avg: '$answers.correctAll'}, 100]},
+            'total_answers': { $size: '$answers'}
+            }
+        },
+        {
+            $project: {
+                answers: 0
+            }
+        }]
+
+    let cursor = await collection.aggregate(aggPipe,dbOptions)
+    let results = await cursor.toArray()
+    await cursor.close()
     await client.close()
-    return result
+    return results
+
 
 }
 export async function getActivitiesByCategory(cat,page = 1,perPage = 5,user = adminUser) {

@@ -394,7 +394,7 @@ class Collection {
                 return new Cursor(results)
             }
             case 'getActivitiesByUsername': {
-                console.log(options)
+
                 if (options.hasOwnProperty('page') && options.hasOwnProperty('limit')) {
                     let {page, limit} = options
                     let start = (page-1)*limit
@@ -403,6 +403,11 @@ class Collection {
                     )
                 }
                 else return new Cursor(db_data)
+            }
+            case 'getActivityById': {
+                console.log(db_data)
+                let activity = db_data.find(a => a['_id'] == options.test.id)
+                return new Cursor([activity])
             }
             default:
                 return new Cursor([])
