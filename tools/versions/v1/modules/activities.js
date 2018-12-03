@@ -54,7 +54,24 @@ router.post('/', async ctx => {
 		ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
     }
 })
-
+router.get('/for/:username', async ctx => {
+    ctx.set('Allow','GET, POST')
+    try {
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
+         let options = {
+             user: ctx.state.user,
+             ...ctx.query,
+             ...ctx.params
+         }
+        let res = await dba.getActivitiesByUsername(options)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.BAD_REQUEST
+        ctx.body = {status: status.BAD_REQUEST, message: err.message}
+    }
+})
 router.get('/:id', async ctx => {
     ctx.set('Allow','GET PUT')
     try {
