@@ -41,3 +41,12 @@ export async function postResults(options) {
     if (!(schema.correct)) throw new Error(schema.message)
     return Promise.resolve({id: results.length})
 }
+export async function getResults(options) {
+    return new Promise((resolve,reject) => {
+        let count = results.length
+        resolve({
+            count,
+            data: results
+        })
+   })
+}

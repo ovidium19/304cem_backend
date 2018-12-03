@@ -210,7 +210,7 @@ describe('HEAD /login', () => {
         done()
     })
 })
-describe('GET /api/v1/activities/:id', () => {
+describe('GET /activities', () => {
     let authHeader
     let wrongUserHeader
     beforeAll(() => {
@@ -220,12 +220,12 @@ describe('GET /api/v1/activities/:id', () => {
     afterAll(runAfterAll)
 
     test('check common response headers', async done => {
-        const response = await request(server).get('/api/v1/activities/1').set('Authorization', authHeader)
+        const response = await request(server).get('/api/v1/activities').set('Authorization', authHeader)
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		done()
     })
     test('check for NOT_FOUND status if database down', async done => {
-        const response = await request(server).get('/api/v1/activities/1')
+        const response = await request(server).get('/api/v1/activities')
                                                 .set('Authorization', authHeader)
                                                 .set('error','foo')
         expect(response.status).toEqual(status.BAD_REQUEST)
@@ -234,48 +234,65 @@ describe('GET /api/v1/activities/:id', () => {
 		done()
     })
     test('This is a protected resource', async done => {
-        const response = await request(server).get('/api/v1/activities/1').expect(status.UNAUTHORIZED)
+        const response = await request(server).get('/api/v1/activities').expect(status.UNAUTHORIZED)
         done()
     })
-    test('if successful, return value should be a list with 1 item, the activity looked for', async done => {
-        const response = await request(server).get('/api/v1/activities/1')
+    test('if successful, return value should be a list of activities and a count', async done => {
+        const response = await request(server).get('/api/v1/activities')
                                             .set('Authorization', authHeader)
                                             .expect(status.OK)
-        expect(response.body.length).toEqual(1)
-        expect(response.body[0]['_id']).toBe(1)
+        expect(response.body.count).toBeGreaterThanOrEqual(1)
+        expect(response.body.data.length).toEqual(response.body.count)
         done()
     })
 })
-
-describe('GET /api/v1/activities/answered/:username', () => {
-    beforeAll(runBeforeAll)
+describe('POST /activities', () => {
+    let authHeader
+    let wrongUserHeader
+    let activity = {
+        username: 'test',
+        name: 'test',
+        published: false
+    }
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
     afterAll(runAfterAll)
 
     test('check common response headers', async done => {
-		//expect.assertions(2)
-        const response = await request(server).get('/api/v1/activities/answered/test')
-        //expect(response.status).toBe(status.OK)
+        const response = await request(server).post('/api/v1/activities/').set('Authorization', authHeader)
 		expect(response.header['access-control-allow-origin']).toBe('*')
-		expect(response.header['content-type']).toContain('application/json')
 		done()
     })
     test('check for NOT_FOUND status if database down', async done => {
-		const response = await request(server).get('/api/v1/activities/answered/test')
-			.set('error', 'foo')
-        expect(response.status).toEqual(status.NOT_FOUND)
+        const response = await request(server).post('/api/v1/activities/')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.UNPROCESSABLE_ENTITY)
 		const data = JSON.parse(response.text)
 		expect(data.message).toBe('foo')
 		done()
     })
-    test('Successfully calling should return a known value', async done => {
-        const response = await request(server).get('/api/v1/activities/answered/test')
-        expect(response.body.length).toBe(5)
+    test('This is a protected resource', async done => {
+        const response = await request(server).post('/api/v1/activities/').expect(status.UNAUTHORIZED)
         done()
     })
-    test('Pagination works', async done => {
-        const response = await request(server).get('/api/v1/activities/answered/test?page=2')
-
-        expect(response.body[0]['_id']).toBe(6)
+    test('If the schema is not correct, return error', async done => {
+        const response = await request(server).post('/api/v1/activities')
+                            .set('Accept', 'application/json')
+                            .set('Authorization', authHeader)
+                            .send({id: 1})
+                            .expect(status.UNPROCESSABLE_ENTITY)
+        expect(response.body.message).toEqual('Missing fields: username name published')
+        done()
+    })
+    test('if successful, return value should be the id of inserted activity', async done => {
+        const response = await request(server).post('/api/v1/activities/')
+                                            .set('Authorization', authHeader)
+                                            .send(activity)
+                                            .expect(status.CREATED)
+        expect(response.body.id).toEqual(8)
         done()
     })
 })
@@ -313,6 +330,41 @@ describe('GET /activities/for/:username', () => {
         console.log(response.body)
         expect(response.body.count).toBeGreaterThanOrEqual(1)
         expect(response.body.data.length).toEqual(response.body.count)
+        done()
+    })
+})
+describe('GET /activities/:id', () => {
+    let authHeader
+    let wrongUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+        const response = await request(server).get('/api/v1/activities/1').set('Authorization', authHeader)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+        const response = await request(server).get('/api/v1/activities/1')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.BAD_REQUEST)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('This is a protected resource', async done => {
+        const response = await request(server).get('/api/v1/activities/1').expect(status.UNAUTHORIZED)
+        done()
+    })
+    test('if successful, return value should be the activity looked for', async done => {
+        const response = await request(server).get('/api/v1/activities/1')
+                                            .set('Authorization', authHeader)
+                                              .expect(status.OK)
+        expect(response.body[0]._id).toEqual(1)
         done()
     })
 })
@@ -395,33 +447,43 @@ describe('PUT /activities/:id/publish', () => {
     })
 })
 describe('PUT /api/v1/activities/:id/answer', () => {
-    beforeAll(runBeforeAll)
+    let authHeader
+    let wrongUserHeader
+    let answer = {
+        username: 'test',
+        correct: true
+    }
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
     afterAll(runAfterAll)
 
     test('check common response headers', async done => {
-        const response = await request(server).put('/api/v1/activities/10/answer').expect(status.NOT_FOUND)
+        const response = await request(server).put('/api/v1/activities/1/answer').set('Authorization', authHeader)
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		done()
     })
-    test('If activity is not found, error must be returned', async done => {
-        let answer = {
-            correct: true
-        }
-        const response = await request(server).put('/api/v1/activities/10/answer')
-                                            .send(answer)
-                                            .expect(status.NOT_FOUND)
-        done()
-
-    })
-    test('if successful, return value should be the activity with the answer pushed', async done => {
-        let answer = {
-            correct: true
-        }
+    test('check for NOT_FOUND status if database down', async done => {
         const response = await request(server).put('/api/v1/activities/1/answer')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.BAD_REQUEST)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('This is a protected resource', async done => {
+        const response = await request(server).put('/api/v1/activities/1/answer').expect(status.UNAUTHORIZED)
+        done()
+    })
+    test('if successful, return value should be the updated result', async done => {
+        const response = await request(server).put('/api/v1/activities/1/answer')
+                                            .set('Authorization', authHeader)
                                             .send(answer)
                                             .expect(status.OK)
-        console.log(response.body)
-        expect(response.body.answers.length).toEqual(3)
+
+        expect(response.body.answers.length).toBeGreaterThanOrEqual(3)
         done()
     })
 })
@@ -453,6 +515,15 @@ describe('POST /results', () => {
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		done()
     })
+    test('check for NOT_FOUND status if database down', async done => {
+        const response = await request(server).post('/api/v1/results')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.UNPROCESSABLE_ENTITY)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
     test('If the schema is not correct, return error', async done => {
         const response = await request(server).post('/api/v1/results')
                             .set('Accept', 'application/json')
@@ -471,6 +542,43 @@ describe('POST /results', () => {
                                 .expect(status.CREATED)
         console.log(response.body)
         expect(response.body.id).toBe(2)
+        done()
+    })
+})
+describe('GET /results', () => {
+    let authHeader
+    let wrongUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+        const response = await request(server).get('/api/v1/results').set('Authorization', authHeader)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+        const response = await request(server).get('/api/v1/results')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.BAD_REQUEST)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('This is a protected resource', async done => {
+        const response = await request(server).get('/api/v1/results').expect(status.UNAUTHORIZED)
+        done()
+    })
+    test('if successful, return value should be a list of activities and a count', async done => {
+        const response = await request(server).get('/api/v1/results')
+                                            .set('Authorization', authHeader)
+                                            .expect(status.OK)
+
+        expect(response.body.count).toBeGreaterThanOrEqual(1)
+        expect(response.body.data.length).toEqual(response.body.count)
         done()
     })
 })

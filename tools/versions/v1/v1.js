@@ -10,19 +10,7 @@ import mount from 'koa-mount'
 import basicAuth from './modules/basicAuth'
 const app = new koa()
 const router = new Router()
-router.get('/',async ctx => {
-    ctx.set('Allow','GET')
-    ctx.status = status.OK
-    try{
-        if (ctx.get('error')) throw new Error(ctx.get('error'))
-        ctx.body = {path: "/api/v1 - path"}
-    }
-    catch(err){
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
-    }
 
-})
 app.use(async (ctx,next) => {
     await next().catch(err => {
         ctx.status = status.UNAUTHORIZED

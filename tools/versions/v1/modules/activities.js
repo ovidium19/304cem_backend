@@ -43,13 +43,12 @@ router.post('/', async ctx => {
         ...ctx.query
     }
     try {
-
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
         let res = await dba.postActivity(options)
-        ctx.status = status.OK
+        ctx.status = status.CREATED
         ctx.body = res
     }
     catch(err) {
-        console.log(err.message.text)
         ctx.status = status.UNPROCESSABLE_ENTITY
 		ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
     }
@@ -129,44 +128,25 @@ router.put('/:id/publish', async ctx => {
 		ctx.body = {status: status.BAD_REQUEST, message: err.message}
     }
 })
-router.get('/username/:name', async ctx => {
-    ctx.set('Allow','GET')
-    try {
-        if (ctx.get('error')) throw new Error(ctx.get('error'))
-        let page = ctx.query['page']
-        let res = await dba.getActivitiesByUsername(ctx.params.name,page ? page : 1)
-        ctx.status = status.OK
-        ctx.body = res
-    }
-    catch(err) {
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
-    }
-})
-router.get('/answered/:username', async ctx => {
-    ctx.set('Allow','GET')
-    try {
-        if (ctx.get('error')) throw new Error(ctx.get('error'))
-        let page = ctx.query['page']
-        let res = await dba.getActivitiesAnsweredByUser(ctx.params.username,page ? page : 1)
-        ctx.status = status.OK
-        ctx.body = res
-    }
-    catch(err) {
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
-    }
-})
+
+
 router.put('/:id/answer', async ctx => {
-    ctx.set('Allow','GET PUT')
+    ctx.set('Allow', 'GET, POST')
+    let options = {
+        data: ctx.request.body,
+        user: ctx.state.user,
+        ...ctx.params,
+        ...ctx.query
+    }
     try {
-        let res = await dba.postAnswer(ctx.request.body, ctx.params.id)
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
+        let res = await dba.postAnswer(options)
         ctx.status = status.OK
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
+        ctx.status = status.BAD_REQUEST
+		ctx.body = {status: status.BAD_REQUEST, message: err.message}
     }
 })
 

@@ -36,19 +36,6 @@ router.get('/',async ctx => {
         ctx.body = {status: status.NOT_FOUND, message: err.message}
     }
 })
-
-router.head('/login',async ctx => {
-    ctx.set('Allow','GET, HEAD, OPTIONS')
-    const user = ctx.state.user
-    try{
-
-        let res = await db.headlessConnection(user)
-        ctx.status = status.OK
-    }
-    catch(err) {
-        ctx.status = status.UNAUTHORIZED
-    }
-})
 router.get('/login',async ctx => {
     ctx.set('Allow','GET, HEAD, OPTIONS')
     const user = ctx.state.user
