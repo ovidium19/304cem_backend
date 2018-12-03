@@ -5,8 +5,9 @@ import status from 'http-status-codes'
 import path from 'path'
 import users from './modules/users'
 import activities from './modules/activities'
+import results from './modules/results'
 import mount from 'koa-mount'
-
+import basicAuth from './modules/basicAuth'
 const app = new koa()
 const router = new Router()
 router.get('/',async ctx => {
@@ -22,8 +23,16 @@ router.get('/',async ctx => {
     }
 
 })
-app.use(mount('/user',users))
+app.use(async (ctx,next) => {
+    await next().catch(err => {
+        ctx.status = status.UNAUTHORIZED
+        ctx.body = {status: status.UNAUTHORIZED, message: err.message}
+    })
+})
+app.use(basicAuth)
+app.use(mount('/users',users))
 app.use(mount('/activities',activities))
+app.use(mount('/results', results))
 app.use(router.routes())
 app.use(router.allowedMethods())
 

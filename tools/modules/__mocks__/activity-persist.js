@@ -117,9 +117,9 @@ const activitySchema = {
     username: '',
     name: ''
 }
-export async function getActivityById(id,user){
+export async function getActivityById(options){
     return new Promise((resolve,reject) => {
-        resolve(activities.find(a => a['_id'] == id))
+        resolve([activities.find(a => a['_id'] == options.id)])
     })
 }
 export async function getActivitiesByCategory(cat,page = 1,perPage = 5, user){
@@ -127,15 +127,6 @@ export async function getActivitiesByCategory(cat,page = 1,perPage = 5, user){
     return new Promise((resolve,reject) => {
         let results = activities.filter((elem,index) => {
             return (index >= ((page-1) * perPage) && index<=(page*perPage-1) && elem.category == capitalize(cat))
-        })
-        resolve(results)
-    })
-}
-export async function getActivitiesByUsername(name,page = 1,perPage = 5, user){
-
-    return new Promise((resolve,reject) => {
-        let results = activities.filter((elem,index) => {
-            return (index >= ((page-1) * perPage) && index<=(page*perPage-1) && elem.username == name)
         })
         resolve(results)
     })
@@ -166,13 +157,29 @@ export async function postActivity(activity,user) {
          resolve({ id: activities.length + 1})
     })
 }
-export async function updateActivity(partialActivity,id,user) {
+export async function updateActivity(options) {
     return new Promise((resolve,reject) => {
-         let elem = activities.find(a => a['_id'] == id)
-         if (!elem) reject('Not found')
+         let elem = activities.find(a => a['_id'] == options.id)
          elem['published'] = false
          resolve(Object.assign({}, elem))
     })
+}
+export async function publishActivity(options) {
+    return new Promise((resolve,reject) => {
+        let elem = Object.assign({},activities.find(a => a['_id'] == options.id))
+        elem['under_review'] = false
+        resolve(elem)
+   })
+}
+export async function getActivitiesByUsername(options) {
+    return new Promise((resolve,reject) => {
+        let elems = activities.filter(a => a['username'] == options.username)
+        let count = elems.length
+        resolve({
+            count,
+            data: elems
+        })
+   })
 }
 export async function postAnswer(answer,id,user) {
     return new Promise((resolve,reject) => {

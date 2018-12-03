@@ -1,20 +1,28 @@
-import {MongoClient, ObjectID} from  'mongodb'
 import axios from 'axios'
-import md5 from 'md5'
+
 import dotenv from 'dotenv'
-import {connect, digestGenerateHeader} from './utils'
+import {connect, digestGenerateHeader, schemaCheck} from './utils'
 dotenv.config()
 
 let calls = 0
-let db
+
 const adminUser = {
     username: process.env.MONGO_ADMIN_USERNAME,
     password: process.env.MONGO_ADMIN_PASS
 }
+const userSchema = {
+    username: true,
+    password: true,
+    email: true
+}
+async function getClientAndCollection(user,dbName,colName) {
+    let client = await connect(user)
+    let db = await client.db(dbName)
+    let collection = await db.collection(colName)
+    return {client, collection}
+}
 export async function createUser(userData) {
-    if (!(userData.hasOwnProperty('username')) || !(userData.hasOwnProperty('password'))){
-        return Promise.reject({message: 'Not the right data'})
-    }
+    if (!schemaCheck(userSchema, userData)) return Promise.reject({message: 'Missing fields'})
     const adminData = {
         username: process.env.MONGO_USERNAME,
         password: process.env.MONGO_APIKEY
@@ -59,18 +67,20 @@ async function postUserData(userData,adminUser) {
     let client = await connect(adminUser)
     let db = await client.db(process.env.MONGO_DBUSERS)
     let collection = await db.collection(process.env.MONGO_USER_DBNAME)
-    let item = Object.assign({},userData,{_id: new ObjectID(userData.username.padStart(12,'0'))})
-    delete item.password
-    let result = await collection.insertOne(item)
+    const { password, ...itemWithNoPassword} = userData
+    let result = await collection.insertOne(itemWithNoPassword)
+    await client.close()
+    return Object.assign({},result.ops,{id: result.insertedId})
+}
+export async function getUserByUsername(user){
+    let {client, collection } = await getClientAndCollection(user,process.env.MONGO_DBUSERS, process.env.MONGO_USER_DBNAME)
+    let result = await collection.findOne({username: user.username})
     await client.close()
     return result
 }
-export async function getUserByUsername(username,user){
-    if (!user) user = adminUser
-    let client = await connect(user)
-    let db = await client.db(process.env.MONGO_DBUSERS)
-    let collection = await db.collection(process.env.MONGO_USER_DBNAME)
-    let result = await collection.findOne({username})
+
+export async function headlessConnection(user){
+    let { client } = await getClientAndCollection(user,process.env.MONGO_DBUSERS, process.env.MONGO_DBUSERS_COLLECTION)
     await client.close()
-    return result
+    return true
 }

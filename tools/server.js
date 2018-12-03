@@ -3,6 +3,8 @@ import koaBP from 'koa-bodyparser'
 import Router from 'koa-router'
 import status from 'http-status-codes'
 import mount from 'koa-mount'
+import morgan from 'koa-morgan'
+import cors from 'koa-cors'
 import path from 'path'
 import * as db from './modules/db-persist'
 
@@ -44,10 +46,14 @@ const api_schema = {
 const app = new koa()
 const port = 3030
 app.use(koaBP())
+app.use(morgan('tiny'))
+app.use(cors())
 const router = new Router()
 app.use( async(ctx, next) => {
     ctx.set('Access-Control-Allow-Origin', '*')
-    ctx.set('Content-Type','application/json')
+    ctx.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
+    ctx.set('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    ctx.set('content-type','application/json')
 	await next()
 })
 router.get('/api', async ctx => {
