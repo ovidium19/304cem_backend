@@ -16,11 +16,9 @@ router.get('/', async ctx => {
     query:
         random=true .. random courses
         category= .. specify category
-        tags = .. specify tags separated by a dot
         page= .. specify page number
         limit = .. how many items per page
     */
-   console.log("here")
    ctx.set('Allow','GET, POST')
    try {
        if (ctx.get('error')) throw new Error(ctx.get('error'))
@@ -28,7 +26,6 @@ router.get('/', async ctx => {
             user: ctx.state.user,
             ...ctx.query
         }
-        console.log(options)
        let res = await dba.getActivities(options)
        ctx.status = status.OK
        ctx.body = res
@@ -38,33 +35,26 @@ router.get('/', async ctx => {
        ctx.body = {status: status.BAD_REQUEST, message: err.message}
    }
 })
-router.post('/create', async ctx => {
-    ctx.set('Allow', 'POST')
-    try {
-        let page = ctx.query['page']
-        let res = await dba.postActivity(ctx.request.body)
-        ctx.status = status.ACCEPTED
-        ctx.body = res
+router.post('/', async ctx => {
+    ctx.set('Allow', 'GET, POST')
+    let options = {
+        data: ctx.request.body,
+        user: ctx.state.user,
+        ...ctx.query
     }
-    catch(err) {
-        ctx.status = status.UNPROCESSABLE_ENTITY
-		ctx.body = {status: 'error', message: err.message}
-    }
-})
-router.get('/randomset', async ctx => {
-    ctx.set('Allow','GET')
     try {
-        if (ctx.get('error')) throw new Error(ctx.get('error'))
-        let page = ctx.query['page']
-        let res = await dba.getFiveRandomActivities()
+
+        let res = await dba.postActivity(options)
         ctx.status = status.OK
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
+        console.log(err.message.text)
+        ctx.status = status.UNPROCESSABLE_ENTITY
+		ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
     }
 })
+
 router.get('/:id', async ctx => {
     ctx.set('Allow','GET PUT')
     try {
@@ -81,28 +71,39 @@ router.get('/:id', async ctx => {
 })
 router.put('/:id', async ctx => {
     ctx.set('Allow','GET PUT')
-    try {
-        let res = await dba.updateActivity(ctx.request.body, ctx.params.id)
-        ctx.status = status.OK
-        ctx.body = res
+    let options = {
+        data: ctx.request.body,
+        user: ctx.state.user,
+        ...ctx.query,
+        ...ctx.params
     }
-    catch(err) {
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
-    }
-})
-router.get('/category/:cat', async ctx => {
-    ctx.set('Allow','GET')
     try {
         if (ctx.get('error')) throw new Error(ctx.get('error'))
-        let page = ctx.query['page']
-        let res = await dba.getActivitiesByCategory(ctx.params.cat,page ? page : 1)
+        let res = await dba.updateActivity(options)
         ctx.status = status.OK
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
+        ctx.status = status.BAD_REQUEST
+		ctx.body = {status: status.BAD_REQUEST, message: err.message}
+    }
+})
+router.put('/:id/publish', async ctx => {
+    ctx.set('Allow','GET PUT')
+    let options = {
+        data: ctx.request.body,
+        user: ctx.state.user,
+        ...ctx.query,
+        ...ctx.params
+    }
+    try {
+        let res = await dba.publishActivity(options)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.BAD_REQUEST
+		ctx.body = {status: status.BAD_REQUEST, message: err.message}
     }
 })
 router.get('/username/:name', async ctx => {

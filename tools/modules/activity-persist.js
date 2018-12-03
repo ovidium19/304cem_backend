@@ -1,5 +1,6 @@
 import {MongoClient, ObjectID} from  'mongodb'
 import axios from 'axios'
+import status from 'http-status-codes'
 import dotenv from 'dotenv'
 import {connect, capitalize, schemaCheck} from './utils'
 dotenv.config()
@@ -9,7 +10,19 @@ const adminUser = {
 }
 const activitySchema = {
     username: '',
-    name: ''
+    name: '',
+    category: '',
+    blanks: '',
+    options: '',
+    text: '',
+    styles: '',
+    music: '',
+    correctSound: '',
+    incorrectSound: '',
+    allow_feedback: '',
+    allow_anon: '',
+    published: '',
+    under_review: ''
 }
 export async function getActivities(options) {
     let client =  await connect(options.user)
@@ -122,37 +135,85 @@ export async function getFiveRandomActivities(user = adminUser,test = {on: false
     await client.close()
     return results
 }
-export async function postActivity(activity, user = adminUser){
-    if (!(schemaCheck(activitySchema,activity))) throw new Error('Activity doesn\'t match schema')
+export async function postActivity(options){
+    let { user, data, ...dbOptions } = options
+
+    let schema = schemaCheck(activitySchema,data)
+    if (!(schema.correct)) throw new Error(schema.message)
 
     let client = await connect(user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
-    let result = await collection.insertOne(activity)
+    let result = await collection.insertOne(data, dbOptions)
     await client.close()
     return { id: result.insertedId }
 }
-export async function updateActivity(partialActivity, id,  user = adminUser){
+async function putActivityUnderReview(options) {
+    let { user, data, ...dbOptions } = options
 
+    let client = await connect(adminUser)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_REVIEW_ACTIVITIES_COL)
+    let ready_data = Object.assign({},data,
+        {
+            _id: ObjectID.createFromHexString(data['_id']),
+            answers: [],
+            feedback: []
+        })
+    let deleteResult = await collection.deleteOne({_id: ready_data['_id']}, dbOptions)
+    let insert_result = await collection.insertOne(ready_data, dbOptions)
+    await client.close()
+    return  { id: insert_result.insertedId }
+
+}
+export async function updateActivity(options){
+    let { user, data, ...dbOptions } = options
+    let schema = schemaCheck(activitySchema,data)
+    let review_result
+    let result = {}
+    if (!(schema.correct)) throw new Error(schema.message)
+
+    if (data.under_review) {
+        data.published = false
+        review_result = await putActivityUnderReview(options)
+        result.review = review_result
+    }
     let client = await connect(user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
-    const updateFields = Object.keys(partialActivity).reduce((p,c,i) => {
+    const updateFields = Object.keys(data).reduce((p,c,i) => {
             if (c == '_id') return p
             if (c == 'styles') {
-                Object.keys(partialActivity[c]).map(prop => {
-                    p[`styles.${prop}`] = partialActivity[c][prop]
+                Object.keys(data[c]).map(prop => {
+                    p[`styles.${prop}`] = data[c][prop]
                 })
                 return p
             }
-            p[c] = partialActivity[c]
+            p[c] = data[c]
             return p
     }, {})
     const updates = { $set: updateFields}
-    const filter = {'_id': ObjectID.createFromHexString(id)}
-    let result = await collection.updateOne(filter,updates)
+    const filter = {'_id': ObjectID.createFromHexString(data['_id'])}
+    let activity_result = await collection.updateOne(filter,updates, dbOptions)
+    result.activity = activity_result['result']
     await client.close()
-    return result['result']
+    return result
+}
+export async function publishActivity(options) {
+    let {data, user, id, ...dbOptions} = options
+    let oid = ObjectID.createFromHexString(id)
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_REVIEW_ACTIVITIES_COL)
+    let result = {}
+
+    result.delete_result = await collection.deleteOne({_id: oid}, dbOptions)
+    let newdata = Object.assign({},data,{
+        under_review: false,
+        published: true
+    })
+    result.update_result = await updateActivity(Object.assign({},options,{data: newdata}))
+    return result
 }
 export async function postAnswer(answer, activityId, user = adminUser) {
     let client = await connect(user)

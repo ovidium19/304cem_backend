@@ -237,75 +237,6 @@ describe('GET /api/v1/activities/:id', () => {
         done()
     })
 })
-describe('GET /api/v1/activities/catgory/:cat', () => {
-    beforeAll(runBeforeAll)
-    afterAll(runAfterAll)
-
-    test('check common response headers', async done => {
-		//expect.assertions(2)
-        const response = await request(server).get('/api/v1/activities/category/history')
-        //expect(response.status).toBe(status.OK)
-		expect(response.header['access-control-allow-origin']).toBe('*')
-		expect(response.header['content-type']).toContain('application/json')
-		done()
-    })
-    test('check for NOT_FOUND status if database down', async done => {
-		const response = await request(server).get('/api/v1/activities/category/history')
-			.set('error', 'foo')
-        expect(response.status).toEqual(status.NOT_FOUND)
-		const data = JSON.parse(response.text)
-		expect(data.message).toBe('foo')
-		done()
-    })
-    test('Successfully calling should return a known value', async done => {
-        const response = await request(server).get('/api/v1/activities/category/geography')
-        expect(response.body[0]).toEqual(expect.objectContaining({
-            category: 'Geography'
-        }))
-        expect(response.body.length).toBe(5)
-        done()
-    })
-    test('Pagination works', async done => {
-        const response = await request(server).get('/api/v1/activities/category/geography?page=2')
-        expect(response.body[0]['_id']).toBe(6)
-        done()
-    })
-})
-describe('GET /api/v1/activities/username/:name', () => {
-    beforeAll(runBeforeAll)
-    afterAll(runAfterAll)
-
-    test('check common response headers', async done => {
-		//expect.assertions(2)
-        const response = await request(server).get('/api/v1/activities/username/unknown')
-        //expect(response.status).toBe(status.OK)
-		expect(response.header['access-control-allow-origin']).toBe('*')
-		expect(response.header['content-type']).toContain('application/json')
-		done()
-    })
-    test('check for NOT_FOUND status if database down', async done => {
-		const response = await request(server).get('/api/v1/activities/username/unknown')
-			.set('error', 'foo')
-        expect(response.status).toEqual(status.NOT_FOUND)
-		const data = JSON.parse(response.text)
-		expect(data.message).toBe('foo')
-		done()
-    })
-    test('Successfully calling should return a known value', async done => {
-        const response = await request(server).get('/api/v1/activities/username/test')
-        expect(response.body[0]).toEqual(expect.objectContaining({
-            username: 'test'
-        }))
-        expect(response.body.length).toBe(5)
-        done()
-    })
-    test('Pagination works', async done => {
-        const response = await request(server).get('/api/v1/activities/username/test?page=2')
-        expect(response.body[0]['_id']).toBe(6)
-        expect(response.body.length).toBe(2)
-        done()
-    })
-})
 
 describe('GET /api/v1/activities/answered/:username', () => {
     beforeAll(runBeforeAll)
@@ -336,32 +267,6 @@ describe('GET /api/v1/activities/answered/:username', () => {
         const response = await request(server).get('/api/v1/activities/answered/test?page=2')
 
         expect(response.body[0]['_id']).toBe(6)
-        done()
-    })
-})
-describe('GET /api/v1/activities/randomset', () => {
-    beforeAll(runBeforeAll)
-    afterAll(runAfterAll)
-
-    test('check common response headers', async done => {
-		//expect.assertions(2)
-        const response = await request(server).get('/api/v1/activities/randomset')
-        //expect(response.status).toBe(status.OK)
-		expect(response.header['access-control-allow-origin']).toBe('*')
-		expect(response.header['content-type']).toContain('application/json')
-		done()
-    })
-    test('check for NOT_FOUND status if database down', async done => {
-		const response = await request(server).get('/api/v1/activities/randomset')
-			.set('error', 'foo')
-        expect(response.status).toEqual(status.NOT_FOUND)
-		const data = JSON.parse(response.text)
-		expect(data.message).toBe('foo')
-		done()
-    })
-    test('Successfully calling should return a known value', async done => {
-        const response = await request(server).get('/api/v1/activities/randomset')
-        expect(response.body.length).toBe(5)
         done()
     })
 })
@@ -400,29 +305,38 @@ describe('POST /api/v1/activities/create', () => {
     })
 })
 describe('PUT /api/v1/activities/:id', () => {
-    beforeAll(runBeforeAll)
+    let authHeader
+    let wrongUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
     afterAll(runAfterAll)
 
     test('check common response headers', async done => {
-        const response = await request(server).put('/api/v1/activities/1')
+        const response = await request(server).put('/api/v1/activities/1').set('Authorization', authHeader)
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		done()
     })
-    test('If activity is not found, error must be returned', async done => {
-        let partialActivity = {
-            published: false
-        }
-        const response = await request(server).put('/api/v1/activities/10')
-                                            .send(partialActivity)
-                                            .expect(status.NOT_FOUND)
+    test('check for NOT_FOUND status if database down', async done => {
+        const response = await request(server).put('/api/v1/activities/1')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.BAD_REQUEST)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('This is a protected resource', async done => {
+        const response = await request(server).put('/api/v1/activities/1').expect(status.UNAUTHORIZED)
         done()
-
     })
     test('if successful, return value should be the activity changed', async done => {
         let partialActivity = {
             published: false
         }
         const response = await request(server).put('/api/v1/activities/1')
+                                            .set('Authorization', authHeader)
                                             .send(partialActivity)
                                             .expect(status.OK)
         expect(response.body.published).toEqual(false)

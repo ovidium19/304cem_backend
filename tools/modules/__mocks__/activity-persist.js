@@ -166,10 +166,9 @@ export async function postActivity(activity,user) {
          resolve({ id: activities.length + 1})
     })
 }
-export async function updateActivity(partialActivity,id,user) {
+export async function updateActivity(options) {
     return new Promise((resolve,reject) => {
-         let elem = activities.find(a => a['_id'] == id)
-         if (!elem) reject('Not found')
+         let elem = activities.find(a => a['_id'] == options.id)
          elem['published'] = false
          resolve(Object.assign({}, elem))
     })
