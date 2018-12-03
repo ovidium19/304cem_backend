@@ -124,7 +124,16 @@ export async function getActivityById(options){
     })
 }
 
+export async function getActivities(options) {
+    return new Promise((resolve,reject) => {
 
+        let count = activities.length
+        resolve({
+            count,
+            data: activities
+        })
+   })
+}
 export async function postActivity(options) {
     let schema = schemaCheck(activitySchema,options.data)
     if (!(schema.correct)) throw new Error(schema.message)

@@ -47,7 +47,6 @@ router.post('/', async ctx => {
        ctx.body = res
    }
    catch(err) {
-        console.log(err)
        ctx.status = status.UNPROCESSABLE_ENTITY
        ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
    }
