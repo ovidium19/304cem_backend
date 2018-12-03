@@ -11,6 +11,10 @@ const dbs = {
     review_activities: {
         index: 2,
         key: '_id'
+    },
+    results: {
+        index: 3,
+        key: '_id'
     }
 }
 export class ObjectID {
@@ -285,6 +289,19 @@ const data = [
                 }
         ]
         }
+    },
+    {
+        s: {
+            name: 'results',
+            documents: [
+                {
+                    id: 2,
+                    username: 'test',
+                    passed: 1,
+                    answers: []
+                }
+            ]
+        }
     }
 ]
 const activitySchema = {
@@ -312,7 +329,7 @@ class Collection {
         }
     }
     insertOne(document, options){
-        let db_Data = this.data.s.documents
+        let db_data = this.data.s.documents
         switch ( options.test.func) {
             case 'postActivity': {
                 return new Promise((resolve,reject) => {
@@ -324,6 +341,11 @@ class Collection {
             case 'updateActivity': {
                 return new Promise((resolve,reject) => {
                     resolve({insertedId: document['_id']})
+                })
+            }
+            case 'postResults': {
+                return new Promise((resolve,reject) => {
+                    resolve({insertedId: db_data.length+1})
                 })
             }
         }

@@ -1,6 +1,7 @@
 jest.mock('mongodb')
 jest.mock('./modules/db-persist')
 jest.mock('./modules/activity-persist')
+jest.mock('./modules/results-persist')
 import server from './server'
 import status from 'http-status-codes'
 import request from 'supertest'
@@ -421,6 +422,55 @@ describe('PUT /api/v1/activities/:id/answer', () => {
                                             .expect(status.OK)
         console.log(response.body)
         expect(response.body.answers.length).toEqual(3)
+        done()
+    })
+})
+describe('POST /results', () => {
+    let authHeader
+    let newUserHeader
+    let result = {
+        username: 'test',
+        category: 'random',
+        answers: [
+            {
+                _id: 1,
+                correct: true
+            }
+        ],
+        passed: 1
+    }
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        newUserHeader = 'Basic ' + btoa('wrong:wrong')
+    })
+    afterAll(runAfterAll)
+
+    test('Check common headers' , async done => {
+        //expect.assertions(2)
+        const response = await request(server).post('/api/v1/results')
+                            .expect(status.UNAUTHORIZED)
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('If the schema is not correct, return error', async done => {
+        const response = await request(server).post('/api/v1/results')
+                            .set('Accept', 'application/json')
+                            .set('Authorization', authHeader)
+                            .send({id: 1})
+                            .expect(status.UNPROCESSABLE_ENTITY)
+        expect(response.body.message).toEqual('Missing fields: username category answers passed')
+        done()
+    })
+
+    test('If successful, result should be added to the database and its id returned', async done => {
+        const response = await request(server).post('/api/v1/results')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', authHeader)
+                                .send(result)
+                                .expect(status.CREATED)
+        console.log(response.body)
+        expect(response.body.id).toBe(2)
         done()
     })
 })

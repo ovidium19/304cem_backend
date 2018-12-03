@@ -81,26 +81,8 @@ export async function getActivityById(options) {
     await client.close()
     return results
 
-
 }
-export async function getActivitiesByCategory(cat,page = 1,perPage = 5,user = adminUser) {
-    let client = await connect(user)
-    let db = await client.db(process.env.MONGO_DBNAME)
-    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
-    const options = {
-        limit: perPage,
-        skip: (page-1) * perPage,
-        projection: {
-            'answers': 0
-        },
-        test
-    }
 
-    let cursor = await collection.find({'category': capitalize(cat)},options)
-    let result = await cursor.toArray()
-    await client.close()
-    return result
-}
 export async function getActivitiesByUsername(options) {
     let { user, username, ...dbOptions } = options
     let client = await connect(options.user)
@@ -165,22 +147,7 @@ export async function getActivitiesAnsweredByUser(username,page = 1,perPage = 5,
     await client.close()
     return result
 }
-export async function getFiveRandomActivities(user = adminUser,test = {on: false}) {
-    let client = await connect(user)
-    let db = await client.db(process.env.MONGO_DBNAME)
-    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
-    const options = {
-        test
-    }
-    let cursor = await collection.aggregate([
-        { $project: { "answers" : 0 } },
-        { $match: { published: true } },
-        { $sample: { size: 5 }}
-    ],options)
-    let results = await cursor.toArray()
-    await client.close()
-    return results
-}
+
 export async function postActivity(options){
     let { user, data, ...dbOptions } = options
 
