@@ -28,23 +28,24 @@ export async function createUser(userData) {
 
     return new Promise(
         (resolve,reject) => {
-        if (!(schemaCheck(userSchema,userData))) reject({
-            response: {
-                status: status.UNPROCESSABLE_ENTITY,
-                data: 'Missing fields'
-            }
+            let schema = schemaCheck(userSchema,userData)
 
-        })
-        if (users.find(u => u.username == userData.username)){
-            reject({
+            if (!(schema.correct)) reject({
                 response: {
                     status: status.UNPROCESSABLE_ENTITY,
-                    data: 'Username already exists'
+                data: schema.message
                 }
             })
-        }
-        users.push(userData)
-        resolve(users.find(u => u.username == userData.username))
+            if (users.find(u => u.username == userData.username)){
+                reject({
+                    response: {
+                        status: status.UNPROCESSABLE_ENTITY,
+                        data: 'Username already exists'
+                    }
+                })
+            }
+            users.push(userData)
+            resolve(users.find(u => u.username == userData.username))
         }
     )
 }

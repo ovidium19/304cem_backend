@@ -28,6 +28,9 @@ export class Cursor {
     toArray() {
         return Promise.resolve(this.list)
     }
+    close() {
+        return Promise.resolve()
+    }
 }
 const users = [
     {
@@ -295,6 +298,9 @@ class Collection {
         this.data = Object.assign({},data[dbs[name].index])
         this.key = dbs[name].key
     }
+    countDocuments(filter,options) {
+        return Promise.resolve(this.data.s.documents.length)
+    }
     deleteOne(filter,options) {
         switch ( options.test.func) {
             case 'updateActivity': {
@@ -358,38 +364,49 @@ class Collection {
     }
     aggregate(pipe,options) {
         let db_data = this.data.s.documents
-        if (options.test.on) {
-            switch(options.test.case) {
-                case 'getActivitiesAnsweredByUser': {
-                    let data = db_data.reduce((p,c) => {
-                        if (p.values.length>=options.limit) return p //we reached page limit, return
 
-                        let answer = c.answers.find(a => a.username == options.test.username)
-                        if (answer){
-                            if (p.skipped < options.skip) return {
-                                values: Array.from(p.values),
-                                skipped: p.skipped + 1
-                            }
-                            return {
-                                values: p.values.concat([Object.assign({},c,{answers: [answer]})]),
-                                skipped: p.skipped
-                            }
+        switch(options.test.func) {
+            case 'getActivitiesAnsweredByUser': {
+                let data = db_data.reduce((p,c) => {
+                    if (p.values.length>=options.limit) return p //we reached page limit, return
+
+                    let answer = c.answers.find(a => a.username == options.test.username)
+                    if (answer){
+                        if (p.skipped < options.skip) return {
+                            values: Array.from(p.values),
+                            skipped: p.skipped + 1
                         }
-                        return p
-                    },{
-                        values: [],
-                        skipped: 0
-                    })
-                    return new Cursor(data.values)
-                    break
-                }
-                case 'getFiveRandomActivities': {
-                    let results = db_data.slice(0,5)
-                    return new Cursor(results)
-                }
-                default:
-                    return new Cursor([])
+                        return {
+                            values: p.values.concat([Object.assign({},c,{answers: [answer]})]),
+                            skipped: p.skipped
+                        }
+                    }
+                    return p
+                },{
+                    values: [],
+                    skipped: 0
+                })
+                return new Cursor(data.values)
+                break
             }
+            case 'getFiveRandomActivities': {
+                let results = db_data.slice(0,5)
+                return new Cursor(results)
+            }
+            case 'getActivitiesByUsername': {
+                console.log(options)
+                if (options.hasOwnProperty('page') && options.hasOwnProperty('limit')) {
+                    let {page, limit} = options
+                    let start = (page-1)*limit
+                    return new Cursor(
+                        db_data.slice(start, start+limit-1)
+                    )
+                }
+                else return new Cursor(db_data)
+            }
+            default:
+                return new Cursor([])
+
         }
     }
     updateOne(filter,updates,options) {

@@ -74,9 +74,8 @@ router.post('/signup', async ctx => {
         ctx.status = status.CREATED
     }
     catch(err) {
-        console.log(err.response)
-        ctx.status = err.response.status
-        ctx.body = {status: err.response.status, data: err.response.data}
+        ctx.status = status.UNPROCESSABLE_ENTITY
+        ctx.body = {status: err.response.status, message: err.response.data}
     }
 })
 

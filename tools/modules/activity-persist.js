@@ -106,7 +106,7 @@ export async function getActivitiesByUsername(options) {
     if (dbOptions.hasOwnProperty('page') && dbOptions.hasOwnProperty('limit')){
         aggPipe.splice(1,0,{$skip: (dbOptions.page-1) * parseInt(dbOptions.limit)},{$limit: parseInt(options.limit)})
     }
-    console.log(aggPipe)
+
     let cursor = await collection.aggregate(aggPipe,dbOptions)
     let results = await cursor.toArray()
     await cursor.close()

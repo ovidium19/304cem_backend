@@ -131,15 +131,6 @@ export async function getActivitiesByCategory(cat,page = 1,perPage = 5, user){
         resolve(results)
     })
 }
-export async function getActivitiesByUsername(name,page = 1,perPage = 5, user){
-
-    return new Promise((resolve,reject) => {
-        let results = activities.filter((elem,index) => {
-            return (index >= ((page-1) * perPage) && index<=(page*perPage-1) && elem.username == name)
-        })
-        resolve(results)
-    })
-}
 export async function getActivitiesAnsweredByUser(username,page = 1,perPage = 5, user, options){
 
     return new Promise((resolve,reject) => {
@@ -178,6 +169,16 @@ export async function publishActivity(options) {
         let elem = Object.assign({},activities.find(a => a['_id'] == options.id))
         elem['under_review'] = false
         resolve(elem)
+   })
+}
+export async function getActivitiesByUsername(options) {
+    return new Promise((resolve,reject) => {
+        let elems = activities.filter(a => a['username'] == options.username)
+        let count = elems.length
+        resolve({
+            count,
+            data: elems
+        })
    })
 }
 export async function postAnswer(answer,id,user) {

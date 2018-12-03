@@ -120,7 +120,7 @@ describe('POST /api/v1/users/signup', () => {
                             .set('Accept', 'application/json')
                             .set('Authorization', authHeader)
                             .expect(status.UNPROCESSABLE_ENTITY)
-        expect(response.body.data).toEqual('Missing fields')
+        expect(response.body.message).toEqual('Missing fields: email')
         done()
     })
     test('If username already exists, we get error', async done => {
@@ -129,7 +129,7 @@ describe('POST /api/v1/users/signup', () => {
                                 .set('Authorization', authHeader)
                                 .send({email: 'ovidium10@yahoo.com'})
                                 .expect(status.UNPROCESSABLE_ENTITY)
-        expect(response.body.data).toEqual('Username already exists')
+        expect(response.body.message).toEqual('Username already exists')
         done()
     })
     test('If successful, user should be added to the database and returned', async done => {
@@ -270,37 +270,40 @@ describe('GET /api/v1/activities/answered/:username', () => {
         done()
     })
 })
-describe('POST /api/v1/activities/create', () => {
-    beforeAll(runBeforeAll)
+describe('GET /activities/for/:username', () => {
+    let authHeader
+    let wrongUserHeader
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
     afterAll(runAfterAll)
 
     test('check common response headers', async done => {
-		//expect.assertions(2)
-        const response = await request(server).post('/api/v1/activities/create')
-        //expect(response.status).toBe(status.OK)
+        const response = await request(server).get('/api/v1/activities/for/test').set('Authorization', authHeader)
 		expect(response.header['access-control-allow-origin']).toBe('*')
 		done()
     })
-
-    test('if activity doesn\'t have the right schema, get error', async done => {
-        const response = await request(server).post('/api/v1/activities/create')
-                                            .send({id: 1, name: 'Bel'})
-                                            .expect(status.UNPROCESSABLE_ENTITY)
-        expect(response.body).toEqual(expect.objectContaining({message:'Activity doesn\'t match schema' }))
+    test('check for NOT_FOUND status if database down', async done => {
+        const response = await request(server).get('/api/v1/activities/for/test')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.BAD_REQUEST)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('This is a protected resource', async done => {
+        const response = await request(server).get('/api/v1/activities/for/test').expect(status.UNAUTHORIZED)
         done()
     })
-    test('if successful, return value should be the course id', async done => {
-        let activity = {
-            username: 'test',
-            name: 'Test Activity'
-        }
-        let expectedResult = {
-            id: 8
-        }
-        const response = await request(server).post('/api/v1/activities/create')
-                                            .send(activity)
-                                            .expect(status.ACCEPTED)
-        expect(response.body).toEqual(expect.objectContaining(expectedResult))
+    test('if successful, return value should be a list of activities and a count', async done => {
+        const response = await request(server).get('/api/v1/activities/for/test')
+                                            .set('Authorization', authHeader)
+                                            .expect(status.OK)
+        console.log(response.body)
+        expect(response.body.count).toBeGreaterThanOrEqual(1)
+        expect(response.body.data.length).toEqual(response.body.count)
         done()
     })
 })

@@ -51,29 +51,54 @@ describe("Testing db.getActivityById",() => {
         done()
     })
 })
-describe("Testing db.getActivitiesByCategory",() => {
-    test("If successful, result should be a list of activities", async done => {
-        let result = await db.getActivitiesByCategory('geography')
-        expect(result[0].category).toBe('Geography')
-        expect(result.length).toBe(5)
-        done()
-    })
-    test("If page is specified, expect results to have pagination", async done => {
-        let result = await db.getActivitiesByCategory('geography',2)
-        expect(result[0]['_id']).toBe(6)
-        done()
-    })
-})
+
 describe("Testing db.getActivitiesByUsername",() => {
-    test("If successful, result should be a list of activities", async done => {
-        let result = await db.getActivitiesByUsername('test')
-        expect(result[0].username).toBe('test')
-        expect(result.length).toBe(5)
+    let user
+    let options
+    beforeAll(() => {
+        user = {
+            username: 'test',
+            password: 'test'
+        },
+
+        options = {
+            user,
+            username: 'test',
+            test: {
+                func: 'getActivitiesByUsername'
+            }
+        }
+    })
+    test('If connection doesn\'t go through, get error', async done => {
+        const user = {
+            username: 'forceError',
+            password: 'any'
+        }
+
+        const newOptions = Object.assign({},options,{user})
+        try{
+            const result = await db.publishActivity(newOptions)
+        }
+        catch(err){
+            expect(err.message).toBe('Connection not established')
+        }
         done()
     })
-    test("If page is specified, expect results to have pagination", async done => {
-        let result = await db.getActivitiesByUsername('test',2)
-        expect(result[0]['_id']).toBe(6)
+
+    test("If successful, result should be a list of activities", async done => {
+        let result = await db.getActivitiesByUsername(options)
+        expect(result.data[0].username).toBe('test')
+        expect(result.count).toBe(7)
+        done()
+    })
+
+    test("If page and limit are specified, expect results to have pagination", async done => {
+        let newOptions = Object.assign({},options,{
+            page: 2,
+            limit: 3
+        })
+        let result = await db.getActivitiesByUsername(newOptions)
+        expect(result.data[0]['_id']).toBe(4)
         done()
     })
 })
@@ -85,7 +110,7 @@ describe("Testing db.getActivitiesAnsweredByUser",() => {
             username: 'test',
             password: 'test'
         }
-        options = {on: true, case: 'getActivitiesAnsweredByUser', username: 'test'}
+        options = {on: true, func: 'getActivitiesAnsweredByUser', username: 'test'}
     })
     test("If successful, result should be a list of activities", async done => {
         let result = await db.getActivitiesAnsweredByUser('test',1,5,user,options)
@@ -100,22 +125,7 @@ describe("Testing db.getActivitiesAnsweredByUser",() => {
         done()
     })
 })
-describe("Testing db.getFiveRandomActivities",() => {
-    let user
-    let options
-    beforeAll(() => {
-        user = {
-            username: 'test',
-            password: 'test'
-        }
-        options = {on: true, case: 'getFiveRandomActivities'}
-    })
-    test("If successful, result should be a list of  5 activities", async done => {
-        let result = await db.getFiveRandomActivities(user,options)
-        expect(result.length).toBe(5)
-        done()
-    })
-})
+
 describe("Testing db.postActivity",() => {
     let user
     let activity
@@ -274,7 +284,7 @@ describe("Testing db.publishActivity",() => {
             const result = await db.publishActivity(options)
         }
         catch(err){
-            expect(err.message).toBe('category blanks options text music correctSound incorrectSound allow_feedback allow_anon')
+            expect(err.message).toBe('Missing fields: category blanks options text music correctSound incorrectSound allow_feedback allow_anon')
         }
         done()
     })
@@ -298,12 +308,14 @@ describe("Testing db.publishActivity",() => {
 
         options.data = data
         const result = await db.publishActivity(options)
-        console.log(result)
         expect(result.delete_result.deletedCount).toBe(1)
         expect(result.update_result.activity['_id']).toBe(1)
         expect(result.update_result.activity.published).toBe(true)
         done()
     })
+
+})
+describe('Testing db.getActivitiesByUsername', () => {
 
 })
 describe("Testing db.postAnswer",() => {

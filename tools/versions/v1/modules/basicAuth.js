@@ -11,6 +11,5 @@ export default async function(ctx,next) {
        username,
        password
    }
-   console.log(ctx.state.user)
    await next()
 }
