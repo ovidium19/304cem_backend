@@ -37,7 +37,6 @@ export async function digestGenerateHeader(options,user,calls) {
         const response = md5(`${ha1}:${nonce}:${nc}:${nonce}:auth:${ha2}`)
 
         let authHeader = `Digest username=\"${obj.username}\", realm=\"${obj.realm}\", nonce=\"${obj.nonce}\", uri=\"${obj.uri}\", algorithm=\"MD5\", qop=auth, nc=${obj.nc}, cnonce=\"${obj.nonce}\", response=\"${response}\"`
-
         return authHeader
     })
 }

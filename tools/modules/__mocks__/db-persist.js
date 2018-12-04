@@ -49,6 +49,9 @@ export async function createUser(userData) {
         }
     )
 }
+export async function updateUser(options) {
+
+}
 export async function getUserByUsername(user){
     return new Promise((resolve,reject) => {
         let userFound = users.find(u => u.username == user.username)
