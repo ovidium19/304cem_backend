@@ -52,6 +52,7 @@ router.get('/login',async ctx => {
 })
 
 router.post('/signup', async ctx => {
+    ctx.set('Allow','POST, OPTIONS')
     const userData = ctx.request.body
     const userLoginDetails = ctx.state.user
     const user = {...userData, ...userLoginDetails}
@@ -63,6 +64,23 @@ router.post('/signup', async ctx => {
     catch(err) {
         ctx.status = status.UNPROCESSABLE_ENTITY
         ctx.body = {status: err.response.status, message: err.response.data}
+    }
+})
+router.patch('/user/:username', async ctx => {
+    ctx.set('Allow','PATCH, OPTIONS')
+    const options = {
+        user: ctx.state.user,
+        data: ctx.request.body,
+        ...ctx.params
+    }
+    try{
+        let res = await db.updateUser(options)
+        ctx.body = res
+        ctx.status = status.OK
+    }
+    catch(err) {
+        ctx.status = status.UNPROCESSABLE_ENTITY
+        ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
     }
 })
 

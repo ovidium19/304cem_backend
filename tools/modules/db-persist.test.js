@@ -81,10 +81,13 @@ describe('Testing createUser', () => {
         const userData = {
             username: 'test2',
             password: 'test',
-            email: 'test'
+            email: 'test',
+            roles: 'user'
         }
         const expectedResult = {
-            id: 1
+            userUpdate: {
+                id: 1
+            }
         }
         const result = await db.createUser(userData)
         expect(result).toEqual(expect.objectContaining(expectedResult))
@@ -92,6 +95,70 @@ describe('Testing createUser', () => {
     })
 
 })
+
+describe('Testing updateUser', () => {
+    const userData = {
+        username: 'wrong',
+        password: 'test',
+        email: 'test',
+        roles: 'user'
+    }
+    beforeAll(() => {
+        axios.mockImplementation((options) => {
+            return new Promise((resolve,reject) => {
+                if (options.hasOwnProperty('headers')){
+                    if (/wrong$/.test(options.url)) reject('Username doesn\'t exist')
+                    resolve({
+                        header: options.headers['Authorization'],
+                        data: options.data
+                    })
+                }
+                else{
+                    reject({
+                        response: {
+                            headers: {
+                                'www-authenticate': 'Digest realm="MMS Public API", domain="", nonce="testnonce", algorithm=MD5, qop="auth", stale=false'
+                            }
+                        }
+                    })
+                }
+            })
+        })
+    })
+    test('If user doesn\'t exist, get error', async done => {
+
+        try{
+            const result = await db.updateUser({
+                user: userData,
+                data: userData.roles,
+                username: userData.username
+            })
+        }
+        catch(err) {
+            expect(err).toBe('Username doesn\'t exist')
+        }
+        done()
+
+    })
+    test('If successfull, result should contain information about the update', async done => {
+
+        let user = Object.assign({},userData,{username: 'test', roles: 'user reviewer'})
+        const result = await db.updateUser({
+            user,
+            data: {
+                roles: user.roles
+            },
+            username: user.username,
+            test: {
+                func: 'updateUser'
+            }
+        })
+        expect(result.userUpdate.nModified).toBe(1)
+        done()
+    })
+
+})
+
 
 
 
