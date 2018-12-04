@@ -125,7 +125,6 @@ export async function updateUser(options) {
                 userUpdate: await updateUserData(options)
             }
         }).catch(err => {
-            console.log(err.response.data)
             throw(err)
         })
 }
@@ -139,12 +138,14 @@ async function postUserData(userData,adminUser) {
     return Object.assign({},result.ops,{id: result.insertedId})
 }
 async function updateUserData(options) {
+    console.log(options)
+    let {user, data, username, ...dbOptions } = options
     let client = await connect(adminUser)
     let db = await client.db(process.env.MONGO_DBUSERS)
     let collection = await db.collection(process.env.MONGO_USER_DBNAME)
     let userData = options.data
     userData.username = options.user.username
-    let result = await collection.updateOne({'username': userData.username}, {$set: userData})
+    let result = await collection.updateOne({'username': userData.username}, {$set: userData}, dbOptions)
     await client.close()
     return result
 }

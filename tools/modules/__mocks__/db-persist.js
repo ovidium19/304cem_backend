@@ -21,7 +21,8 @@ const courses = [
 const userSchema = {
     username: '',
     password: '',
-    email: ''
+    email: '',
+    roles: ''
 }
 
 export async function createUser(userData) {
@@ -44,13 +45,30 @@ export async function createUser(userData) {
                     }
                 })
             }
-            users.push(userData)
-            resolve(users.find(u => u.username == userData.username))
+
+            resolve(userData)
         }
     )
 }
 export async function updateUser(options) {
-
+    return new Promise(
+        (resolve,reject) => {
+            console.log(options)
+            if (users.find(u => u.username == options.user.username)){
+                resolve({
+                    adminUpdate: {
+                        roles: options.data.roles
+                    },
+                    userUpdate: {
+                        nModified: 1
+                    }
+                })
+            }
+            reject({
+                message: 'Username doesn\'t exist'
+            })
+        }
+    )
 }
 export async function getUserByUsername(user){
     return new Promise((resolve,reject) => {

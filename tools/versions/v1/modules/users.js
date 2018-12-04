@@ -76,7 +76,7 @@ router.patch('/user/:username', async ctx => {
     try{
         let res = await db.updateUser(options)
         ctx.body = res
-        ctx.status = status.CREATED
+        ctx.status = status.OK
     }
     catch(err) {
         ctx.status = status.UNPROCESSABLE_ENTITY

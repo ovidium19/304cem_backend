@@ -464,6 +464,12 @@ class Collection {
     }
     updateOne(filter,updates,options) {
         let db_data = this.data.s.documents
+        if (options.test.func == 'updateUser') {
+            return Promise.resolve({
+                nModified: 1,
+                data: updates['$set']
+            })
+        }
         let elem = db_data.find(e => e['_id'] == filter['_id'])
         let res = Object.assign({},elem)
         Object.keys(updates).forEach( op => {

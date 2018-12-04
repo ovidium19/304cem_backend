@@ -121,14 +121,14 @@ describe('POST /api/v1/users/signup', () => {
                             .set('Accept', 'application/json')
                             .set('Authorization', authHeader)
                             .expect(status.UNPROCESSABLE_ENTITY)
-        expect(response.body.message).toEqual('Missing fields: email')
+        expect(response.body.message).toEqual('Missing fields: email roles')
         done()
     })
     test('If username already exists, we get error', async done => {
         const response = await request(server).post('/api/v1/users/signup')
                                 .set('Accept', 'application/json')
                                 .set('Authorization', authHeader)
-                                .send({email: 'ovidium10@yahoo.com'})
+                                .send({email: 'ovidium10@yahoo.com', roles:'user'})
                                 .expect(status.UNPROCESSABLE_ENTITY)
         expect(response.body.message).toEqual('Username already exists')
         done()
@@ -137,9 +137,49 @@ describe('POST /api/v1/users/signup', () => {
         const response = await request(server).post('/api/v1/users/signup')
                                 .set('Accept', 'application/json')
                                 .set('Authorization', newUserHeader)
-                                .send({email: 'ovidium10@yahoo.com'})
+                                .send({email: 'ovidium10@yahoo.com', roles:'user'})
                                 .expect(status.CREATED)
         expect(response.body).toEqual(expect.objectContaining({username: 'wrong'}))
+        done()
+    })
+})
+describe('PATCH /api/v1/users/user/:username', () => {
+    let authHeader
+    let newUserHeader
+    let userData
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        newUserHeader = 'Basic ' + btoa('wrong:wrong')
+        userData = {
+            roles: 'user reviewer'
+        }
+    })
+    afterAll(runAfterAll)
+
+    test('Check common headers' , async done => {
+        //expect.assertions(2)
+        const response = await request(server).patch('/api/v1/users/user/test')
+                            .expect(status.UNAUTHORIZED)
+        //expect(response.status).toBe(status.OK)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('If username doesn\'t exist, we get error', async done => {
+        const response = await request(server).patch('/api/v1/users/user/test')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', newUserHeader)
+                                .send(userData)
+                                .expect(status.UNPROCESSABLE_ENTITY)
+        expect(response.body.message).toEqual('Username doesn\'t exist')
+        done()
+    })
+    test('If successful, user should be updated and proper response received', async done => {
+        const response = await request(server).patch('/api/v1/users/user/test')
+                                .set('Accept', 'application/json')
+                                .set('Authorization', authHeader)
+                                .send(userData)
+                                .expect(status.OK)
+        expect(response.body.userUpdate.nModified).toEqual(1)
         done()
     })
 })
@@ -327,7 +367,6 @@ describe('GET /activities/for/:username', () => {
         const response = await request(server).get('/api/v1/activities/for/test')
                                             .set('Authorization', authHeader)
                                             .expect(status.OK)
-        console.log(response.body)
         expect(response.body.count).toBeGreaterThanOrEqual(1)
         expect(response.body.data.length).toEqual(response.body.count)
         done()
