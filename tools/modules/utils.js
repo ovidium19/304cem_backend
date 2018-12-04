@@ -37,13 +37,20 @@ export async function digestGenerateHeader(options,user,calls) {
         const response = md5(`${ha1}:${nonce}:${nc}:${nonce}:auth:${ha2}`)
 
         let authHeader = `Digest username=\"${obj.username}\", realm=\"${obj.realm}\", nonce=\"${obj.nonce}\", uri=\"${obj.uri}\", algorithm=\"MD5\", qop=auth, nc=${obj.nc}, cnonce=\"${obj.nonce}\", response=\"${response}\"`
-
         return authHeader
     })
 }
-export function capitalize(s) {
-    return s[0].toUpperCase() + s.slice(1)
-}
 export function schemaCheck(schema,data) {
-    return Object.keys(schema).reduce((p,c,i) => p && data.hasOwnProperty(c), true)
+    let error = false
+    let errors = Object.keys(schema).reduce((p,c,i) => {
+        if (!(data.hasOwnProperty(c))) {
+            error = true
+            p = `${p} ${c}`
+        }
+        return p
+    }, 'Missing fields:')
+    return {
+        correct: !(error),
+        message: errors
+    }
 }

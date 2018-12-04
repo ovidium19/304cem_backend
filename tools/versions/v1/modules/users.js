@@ -1,47 +1,61 @@
 import koa from 'koa'
 import koaBP from 'koa-bodyparser'
 import Router from 'koa-router'
-import koabp from 'koa-bodyparser'
 import status from 'http-status-codes'
-import path from 'path'
 import * as db from '../../../modules/db-persist'
+
+
+/*
+POST /signup
+HEAD /login
+GET /login
+PUT /:username
+*/
+
 
 const app = new koa()
 app.use(koaBP())
-app.use( async(ctx, next) => {
-    ctx.set('Access-Control-Allow-Origin', '*')
-    ctx.set('content-type','application/json')
-	await next()
-})
-const port = 3030
+
+
 const router = new Router()
+
+
 router.get('/',async ctx => {
     ctx.set('Allow','GET')
-    try {
+
+    try{
         if (ctx.get('error')) throw new Error(ctx.get('error'))
         ctx.status = status.OK
-        ctx.body = {path: '/api/v1/user - path'}
+        ctx.body = {
+        path: '/api/v1/user - path',
+        state: ctx.state.user
+        }
     }
     catch(err) {
         ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
+        ctx.body = {status: status.NOT_FOUND, message: err.message}
     }
 })
-router.get('/:id', async ctx => {
-    ctx.set('Allow', 'GET')
-    try {
-        if (ctx.get('error')) throw new Error(ctx.get('error'))
-        let res = await db.getUserByUsername(ctx.params.id)
-        ctx.status = status.OK
+router.get('/login',async ctx => {
+    ctx.set('Allow','GET, HEAD, OPTIONS')
+    const user = ctx.state.user
+    try{
+        let res = await db.getUserByUsername(user)
+        console.log(res)
         ctx.body = res
+        ctx.status = status.OK
     }
     catch(err) {
-        ctx.status = status.NOT_FOUND
-		ctx.body = {status: 'error', message: err.message}
+        ctx.status = status.UNAUTHORIZED
+        ctx.body = {status: status.UNAUTHORIZED, message: err.message}
     }
 })
-router.post('/create', async ctx => {
-    const user = ctx.request.body
+
+router.post('/signup', async ctx => {
+    ctx.set('Allow','POST, OPTIONS')
+    const userData = ctx.request.body
+    const userLoginDetails = ctx.state.user
+    const user = {...userData, ...userLoginDetails}
     try{
         let res = await db.createUser(user)
         ctx.body = res
@@ -49,9 +63,28 @@ router.post('/create', async ctx => {
     }
     catch(err) {
         ctx.status = status.UNPROCESSABLE_ENTITY
+        ctx.body = {status: err.response.status, message: err.response.data}
+    }
+})
+router.patch('/user/:username', async ctx => {
+    ctx.set('Allow','PATCH, OPTIONS')
+    const options = {
+        user: ctx.state.user,
+        data: ctx.request.body,
+        ...ctx.params
+    }
+    try{
+        let res = await db.updateUser(options)
+        ctx.body = res
+        ctx.status = status.OK
+    }
+    catch(err) {
+        ctx.status = status.UNPROCESSABLE_ENTITY
         ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
     }
 })
+
+
 app.use(router.routes())
 app.use(router.allowedMethods())
 

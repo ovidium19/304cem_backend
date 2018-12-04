@@ -1,35 +1,50 @@
-import {MongoClient, ObjectID} from  'mongodb'
 import axios from 'axios'
-import md5 from 'md5'
+
 import dotenv from 'dotenv'
-import {connect, digestGenerateHeader} from './utils'
+import {connect, digestGenerateHeader, schemaCheck} from './utils'
+import { resolveSoa } from 'dns';
 dotenv.config()
 
 let calls = 0
-let db
+
 const adminUser = {
     username: process.env.MONGO_ADMIN_USERNAME,
     password: process.env.MONGO_ADMIN_PASS
 }
+const userSchema = {
+    username: true,
+    password: true,
+    email: true
+}
+const adminData = {
+    username: process.env.MONGO_USERNAME,
+    password: process.env.MONGO_APIKEY
+}
+async function getClientAndCollection(user,dbName,colName) {
+    let client = await connect(user)
+    let db = await client.db(dbName)
+    let collection = await db.collection(colName)
+    return {client, collection}
+}
 export async function createUser(userData) {
-    if (!(userData.hasOwnProperty('username')) || !(userData.hasOwnProperty('password'))){
-        return Promise.reject({message: 'Not the right data'})
-    }
-    const adminData = {
-        username: process.env.MONGO_USERNAME,
-        password: process.env.MONGO_APIKEY
-    }
+    let schema = schemaCheck(userSchema,userData)
+    if (!(schema.correct)) throw new Error(schema.message)
+
 
     const baseURL = `${process.env.MONGO_API_BASEURL}`
     const url = `/api/atlas/v1.0/groups/${process.env.MONGO_PROJECT_ID}/databaseUsers`
-    const opt = {
-        roles: [
-            {
-                roleName: 'readWrite',
-                databaseName: process.env.MONGO_DBNAME
-            }
-        ]
-    }
+    const roles = [
+        {
+            roleName: 'readWrite',
+            databaseName: process.env.MONGO_DBNAME,
+            collectionName: process.env.MONGO_ACTIVITY_COL
+        },
+        {
+            roleName: 'readWrite',
+            databaseName: process.env.MONGO_DBNAME,
+            collectionName: process.env.MONGO_RESULTS_COL
+        }
+    ]
     const options = {
         method: 'POST',
         url,
@@ -38,7 +53,7 @@ export async function createUser(userData) {
             databaseName: 'admin',
             username: userData.username,
             password: userData.password,
-            roles: opt.roles,
+            roles,
             groupId: process.env.MONGO_PROJECT_ID
         },
     }
@@ -52,25 +67,93 @@ export async function createUser(userData) {
             }
         })).then(async res => {
             calls = 0
-            return await postUserData(userData,adminUser)
+            return  {
+                adminUpdate: res.data,
+                userUpdate: await postUserData(userData, adminUser)
+            }
+        })
+}
+export async function updateUser(options) {
+
+    const baseURL = `${process.env.MONGO_API_BASEURL}`
+    const url = `/api/atlas/v1.0/groups/${process.env.MONGO_PROJECT_ID}/databaseUsers/admin/${options.user.username}`
+    let roles = []
+    if (/user/.test(options.data.roles)) {
+        roles = roles.concat([
+            {
+                roleName: 'readWrite',
+                databaseName: process.env.MONGO_DBNAME,
+                collectionName: process.env.MONGO_ACTIVITY_COL
+            },
+            {
+                roleName: 'readWrite',
+                databaseName: process.env.MONGO_DBNAME,
+                collectionName: process.env.MONGO_RESULTS_COL
+            }
+        ])
+    }
+    if (/reviewer/.test(options.data.roles)) {
+        roles.push(
+            {
+                roleName: 'readWrite',
+                databaseName: process.env.MONGO_DBNAME,
+                collectionName: process.env.MONGO_REVIEW_ACTIVITIES_COL
+            })
+    }
+
+    const opt = {
+        method: 'PATCH',
+        url,
+        baseURL,
+        data: {
+            roles
+        }
+    }
+    calls = calls + 1
+    const authHeader = await digestGenerateHeader(opt,adminData,calls)
+    return axios(
+        Object.assign({},opt,
+        {
+            headers: {
+                'Authorization': authHeader
+            }
+        })).then(async res => {
+            console.log('In then')
+            calls = 0
+            return {
+                adminUpdate: res.data,
+                userUpdate: await updateUserData(options)
+            }
+        }).catch(err => {
+            throw(err)
         })
 }
 async function postUserData(userData,adminUser) {
     let client = await connect(adminUser)
     let db = await client.db(process.env.MONGO_DBUSERS)
     let collection = await db.collection(process.env.MONGO_USER_DBNAME)
-    let item = Object.assign({},userData,{_id: new ObjectID(userData.username.padStart(12,'0'))})
-    delete item.password
-    let result = await collection.insertOne(item)
+    const { password, ...itemWithNoPassword} = userData
+    let result = await collection.insertOne(itemWithNoPassword)
     await client.close()
-    return result
+    return Object.assign({},result.ops,{id: result.insertedId})
 }
-export async function getUserByUsername(username,user){
-    if (!user) user = adminUser
-    let client = await connect(user)
+async function updateUserData(options) {
+    console.log(options)
+    let {user, data, username, ...dbOptions } = options
+    let client = await connect(adminUser)
     let db = await client.db(process.env.MONGO_DBUSERS)
     let collection = await db.collection(process.env.MONGO_USER_DBNAME)
-    let result = await collection.findOne({username})
+    let userData = options.data
+    userData.username = options.user.username
+    let result = await collection.updateOne({'username': userData.username}, {$set: userData}, dbOptions)
     await client.close()
     return result
 }
+export async function getUserByUsername(user){
+    let {client, collection } = await getClientAndCollection(user,process.env.MONGO_DBUSERS, process.env.MONGO_USER_DBNAME)
+    let result = await collection.findOne({username: user.username})
+    await client.close()
+    return result
+}
+
+
