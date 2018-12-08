@@ -64,6 +64,11 @@ export async function getResults(options) {
                 'questions.incorrectSound': 0,
                 'questions.under_review': 0
             }
+        },
+        {
+            $addFields: {
+                'total_time': { $avg: '$answers.time'}
+            }
         }
 
         ]

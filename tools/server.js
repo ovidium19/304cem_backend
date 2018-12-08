@@ -47,14 +47,19 @@ const app = new koa()
 const port = 3030
 app.use(koaBP())
 app.use(morgan('tiny'))
-app.use(cors())
+app.use(cors({
+    methods: 'GET,PUT,POST,PATCH,DELETE,OPTIONS',
+    origin: true,
+    headers: 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
+    credentials: true
+}))
 const router = new Router()
 app.use( async(ctx, next) => {
-    ctx.set('Access-Control-Allow-Origin', '*')
-    ctx.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
-    ctx.set('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    // ctx.set('Access-Control-Allow-Origin', '*')
+    // ctx.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
+    // ctx.set('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH')
     ctx.set('content-type','application/json')
-	await next()
+    await next()
 })
 router.get('/api', async ctx => {
     ctx.set('Allow','GET')

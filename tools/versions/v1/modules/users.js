@@ -16,7 +16,6 @@ PUT /:username
 const app = new koa()
 app.use(koaBP())
 
-
 const router = new Router()
 
 
@@ -63,6 +62,7 @@ router.post('/signup', async ctx => {
     }
     catch(err) {
         ctx.status = status.UNPROCESSABLE_ENTITY
+        console.log(err)
         ctx.body = {status: err.response.status, message: err.response.data}
     }
 })
@@ -79,6 +79,7 @@ router.patch('/user/:username', async ctx => {
         ctx.status = status.OK
     }
     catch(err) {
+        console.log(err.message)
         ctx.status = status.UNPROCESSABLE_ENTITY
         ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
     }

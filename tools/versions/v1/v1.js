@@ -13,6 +13,7 @@ const router = new Router()
 
 app.use(async (ctx,next) => {
     await next().catch(err => {
+        console.log(err.message0)
         ctx.status = status.UNAUTHORIZED
         ctx.body = {status: status.UNAUTHORIZED, message: err.message}
     })

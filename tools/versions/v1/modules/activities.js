@@ -149,6 +149,25 @@ router.put('/:id/answer', async ctx => {
 		ctx.body = {status: status.BAD_REQUEST, message: err.message}
     }
 })
+router.put('/:id/feedback', async ctx => {
+    ctx.set('Allow', 'GET, POST')
+    let options = {
+        data: ctx.request.body,
+        user: ctx.state.user,
+        ...ctx.params,
+        ...ctx.query
+    }
+    try {
+        if (ctx.get('error')) throw new Error(ctx.get('error'))
+        let res = await dba.postFeedback(options)
+        ctx.status = status.OK
+        ctx.body = res
+    }
+    catch(err) {
+        ctx.status = status.BAD_REQUEST
+		ctx.body = {status: status.BAD_REQUEST, message: err.message}
+    }
+})
 
 app.use(router.routes())
 app.use(router.allowedMethods())
