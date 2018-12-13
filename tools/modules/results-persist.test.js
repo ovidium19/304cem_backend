@@ -103,7 +103,12 @@ describe("Testing db.getResults",() => {
         expect(result.count).toBe(4)
         done()
     })
-
+    test("If stats are requested, expect stats for the username", async done => {
+        let newOptions = Object.assign({},options,{stats: true})
+        let results = await db.getResults(newOptions)
+        expect(results.data[0]['_id']).toBe(1)
+        done()
+    })
     test("If page and limit are specified, expect results to have pagination", async done => {
         let newOptions = Object.assign({},options,{
             page: 2,

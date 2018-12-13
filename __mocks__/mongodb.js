@@ -77,8 +77,12 @@ const data = [
                         correct: false
                     }
                 ],
+                feedback: [
+
+                ],
                 published: false,
-                under_review: true
+                under_review: true,
+                allow_anon: true
                 },
                 {
                 _id: 2,
@@ -298,7 +302,8 @@ const data = [
                     _id: 1,
                     username: 'test',
                     passed: 1,
-                    answers: []
+                    answers: [],
+                    feedback: []
                 },
                 {
                     _id: 2,
@@ -337,14 +342,21 @@ class Collection {
         return Promise.resolve(this.data.s.documents.length)
     }
     deleteOne(filter,options) {
-        switch ( options.test.func) {
-            case 'updateActivity': {
-                return Promise.resolve({deletedCount: 1})
-            }
-            case 'publishActivity': {
-                return Promise.resolve({deletedCount: 1})
-            }
-        }
+        return Promise.resolve({deletedCount: 1})
+        // switch ( options.test.func) {
+        //     case 'updateActivity': {
+        //         return Promise.resolve({deletedCount: 1})
+        //     }
+        //     case 'publishActivity': {
+        //         return Promise.resolve({deletedCount: 1})
+        //     }
+        //     case 'declineActivity': {
+        //         return Promise.resolve({deletedCount: 1})
+        //     }
+        //     case 'updateActivity': {
+
+        //     }
+        // }
     }
     insertOne(document, options){
         let db_data = this.data.s.documents
@@ -441,6 +453,7 @@ class Collection {
                 return new Cursor(results)
             }
             case 'getActivitiesByUsername':
+            case 'getReviewActivities':
             case 'getResults':  {
 
                 if (options.hasOwnProperty('page') && options.hasOwnProperty('limit')) {
@@ -450,10 +463,16 @@ class Collection {
                         db_data.slice(start, start+limit-1)
                     )
                 }
+                if (options.hasOwnProperty('sort')) {
+                    return new Cursor(db_data.sort((a,b) => a.id  - b.id))
+                }
                 else return new Cursor(db_data)
             }
+            case 'getActivities': {
+                return new Cursor(db_data.slice(0,5))
+            }
             case 'getActivityById': {
-                console.log(db_data)
+
                 let activity = db_data.find(a => a['_id'] == options.test.id)
                 return new Cursor([activity])
             }
@@ -480,7 +499,9 @@ class Collection {
                     break
                 }
                 case '$push': {
-                    res.answers.push(updates[op]['answers'])
+                    if (options.test.func == 'postAnswer')
+                        res.answers.push(updates[op]['answers'])
+                    else res.feedback.push(updates[op]['feedback'])
                     break
                 }
                 default: break

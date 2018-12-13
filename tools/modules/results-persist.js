@@ -41,48 +41,80 @@ export async function getResults(options) {
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_RESULTS_COL)
     let query = {'username': options.user.username}
-    let total_count = await collection.countDocuments(query)
-    let aggPipe =  [
-        {
-            $match: query
-        },
-        {
-            $lookup: {
-                from: 'activities',
-                localField: 'answers.question_id',
-                foreignField: '_id',
-                as: 'questions'
+    let total_count = -1
+    let aggPipe
+    if (options.stats) {
+        aggPipe = [
+            {
+                $match: query
+            },
+            {
+                $addFields: {
+                    'total_time': { $sum: '$answers.time'}
+                }
+            },
+            {
+                $group: {
+                    _id: '$username',
+                    passrate: { $avg: '$passed'},
+                    avg_time: {$avg: '$total_time'}
+                }
             }
-        },
-        {
-            $project: {
-                'questions.answers': 0,
-                'questions.feedback': 0,
-                'questions.styles': 0,
-                'questions.music': 0,
-                'questions.correctSound': 0,
-                'questions.incorrectSound': 0,
-                'questions.under_review': 0
-            }
-        },
-        {
-            $addFields: {
-                'total_time': { $avg: '$answers.time'}
-            }
-        }
-
         ]
+    }
+    else {
+        total_count = await collection.countDocuments(query)
+        aggPipe =  [
+            {
+                $match: query
+            },
+            {
+                $sort: {'timestamp': -1}
+            },
+            {
+                $lookup: {
+                    from: 'activities',
+                    localField: 'answers.question_id',
+                    foreignField: '_id',
+                    as: 'questions'
+                }
+            },
+            {
+                $project: {
+                    'questions.answers': 0,
+                    'questions.feedback': 0,
+                    'questions.styles': 0,
+                    'questions.music': 0,
+                    'questions.correctSound': 0,
+                    'questions.incorrectSound': 0,
+                    'questions.under_review': 0
+                }
+            },
+            {
+                $addFields: {
+                    'total_time': { $sum: '$answers.time'}
+                }
+            }
+            ]
 
-    if (dbOptions.hasOwnProperty('page') && dbOptions.hasOwnProperty('limit')){
-        aggPipe.splice(1,0,{$skip: (dbOptions.page-1) * parseInt(dbOptions.limit)},{$limit: parseInt(options.limit)})
+        if (dbOptions.hasOwnProperty('page') && dbOptions.hasOwnProperty('limit')){
+            aggPipe.splice(1,0,{$skip: (dbOptions.page-1) * parseInt(dbOptions.limit)},{$limit: parseInt(options.limit)})
+        }
     }
 
     let cursor = await collection.aggregate(aggPipe,dbOptions)
     let results = await cursor.toArray()
     await cursor.close()
     await client.close()
-    return {
+    if (total_count >= 0) {
+        return {
         count: total_count,
         data: results
+        }
+    }
+    else {
+        return {
+            data: results
+        }
     }
 }

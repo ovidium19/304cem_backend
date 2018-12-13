@@ -73,7 +73,7 @@ describe('Testing createUser', () => {
             const result = await db.createUser(userData)
         }
         catch(result){
-            expect(result.message).toBe('Missing fields: username password email')
+            expect(result.message).toBe('Missing fields: username password email roles')
         }
         done()
     })
@@ -83,6 +83,22 @@ describe('Testing createUser', () => {
             password: 'test',
             email: 'test',
             roles: 'user'
+        }
+        const expectedResult = {
+            userUpdate: {
+                id: 1
+            }
+        }
+        const result = await db.createUser(userData)
+        expect(result).toEqual(expect.objectContaining(expectedResult))
+        done()
+    })
+    test('If successfull, result should contain user information stored in public db - also with reviewer rols', async done => {
+        const userData = {
+            username: 'test2',
+            password: 'test',
+            email: 'test',
+            roles: 'user reviewer'
         }
         const expectedResult = {
             userUpdate: {

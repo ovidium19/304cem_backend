@@ -19,7 +19,8 @@ const activities =  [
             {
                 username: 'ovi',
                 correct: false
-            }]
+            }],
+        feedback: []
         },
         {
         _id: 2,
@@ -134,6 +135,17 @@ export async function getActivities(options) {
         })
    })
 }
+export async function getReviewActivities(options) {
+    return new Promise((resolve,reject) => {
+
+        let count = activities.length
+        resolve({
+            count,
+            data: activities
+        })
+   })
+}
+
 export async function postActivity(options) {
     let schema = schemaCheck(activitySchema,options.data)
     if (!(schema.correct)) throw new Error(schema.message)
@@ -153,7 +165,15 @@ export async function publishActivity(options) {
         let elem = Object.assign({},activities.find(a => a['_id'] == options.id))
         elem['under_review'] = false
         resolve(elem)
-   })
+    })
+}
+export async function declineActivity(options) {
+    return new Promise((resolve,reject) => {
+        let elem = Object.assign({},activities.find(a => a['_id'] == options.id))
+        elem['under_review'] = false
+        elem['published'] = false
+        resolve(elem)
+    })
 }
 export async function getActivitiesByUsername(options) {
     return new Promise((resolve,reject) => {
@@ -170,6 +190,14 @@ export async function postAnswer(options) {
          let elem = activities.find(a => a['_id'] == options.id)
          let res = Object.assign({},elem)
          res.answers.push(options.data)
+         resolve(res)
+    })
+}
+export async function postFeedback(options) {
+    return new Promise((resolve,reject) => {
+         let elem = activities.find(a => a['_id'] == options.id)
+         let res = Object.assign({},elem)
+         res.feedback.push(options.data)
          resolve(res)
     })
 }

@@ -18,6 +18,7 @@ router.get('/', async ctx => {
         category= .. specify category
         page= .. specify page number
         limit = .. how many items per page
+        review = .. gets all review_activities instead
     */
    ctx.set('Allow','GET, POST')
    try {
@@ -26,7 +27,14 @@ router.get('/', async ctx => {
             user: ctx.state.user,
             ...ctx.query
         }
-       let res = await dba.getActivities(options)
+        let res
+        if (options.review) {
+            res = await dba.getReviewActivities(options)
+        }
+        else {
+            res = await dba.getActivities(options)
+        }
+
        ctx.status = status.OK
        ctx.body = res
    }
@@ -119,7 +127,13 @@ router.put('/:id/publish', async ctx => {
     }
     try {
         if (ctx.get('error')) throw new Error(ctx.get('error'))
-        let res = await dba.publishActivity(options)
+        let res
+        if (options.remove) {
+            res = await dba.declineActivity(options)
+        }
+        else{
+            res = await dba.publishActivity(options)
+        }
         ctx.status = status.OK
         ctx.body = res
     }

@@ -285,6 +285,14 @@ describe('GET /activities', () => {
         expect(response.body.data.length).toEqual(response.body.count)
         done()
     })
+    test('review_activities - if successful, return value should be a list of activities and a count ', async done => {
+        const response = await request(server).get('/api/v1/activities?review=true')
+        .set('Authorization', authHeader)
+        .expect(status.OK)
+        expect(response.body.count).toBeGreaterThanOrEqual(1)
+        expect(response.body.data.length).toEqual(response.body.count)
+        done()
+    })
 })
 describe('POST /activities', () => {
     let authHeader
@@ -484,6 +492,17 @@ describe('PUT /activities/:id/publish', () => {
         expect(response.body.under_review).toEqual(false)
         done()
     })
+    test('if successful, return value should be the activity with under_review set to false and published set to false', async done => {
+        let partialActivity = {
+            published: false
+        }
+        const response = await request(server).put('/api/v1/activities/1/publish?remove=true')
+                                            .set('Authorization', authHeader)
+                                            .send(partialActivity)
+                                            .expect(status.OK)
+        expect(response.body.under_review).toEqual(false)
+        done()
+    })
 })
 describe('PUT /api/v1/activities/:id/answer', () => {
     let authHeader
@@ -523,6 +542,47 @@ describe('PUT /api/v1/activities/:id/answer', () => {
                                             .expect(status.OK)
 
         expect(response.body.answers.length).toBeGreaterThanOrEqual(3)
+        done()
+    })
+})
+describe('PUT /activities/:id/feedback', () => {
+    let authHeader
+    let wrongUserHeader
+    let feedback = {
+        username: 'test',
+        rating: 2
+    }
+    beforeAll(() => {
+        authHeader = 'Basic ' + btoa('test:test')
+        wrongUserHeader = 'Basic ' + btoa('wrong2:wrong2')
+    })
+    afterAll(runAfterAll)
+
+    test('check common response headers', async done => {
+        const response = await request(server).put('/api/v1/activities/1/feedback').set('Authorization', authHeader)
+		expect(response.header['access-control-allow-origin']).toBe('*')
+		done()
+    })
+    test('check for NOT_FOUND status if database down', async done => {
+        const response = await request(server).put('/api/v1/activities/1/feedback')
+                                                .set('Authorization', authHeader)
+                                                .set('error','foo')
+        expect(response.status).toEqual(status.BAD_REQUEST)
+		const data = JSON.parse(response.text)
+		expect(data.message).toBe('foo')
+		done()
+    })
+    test('This is a protected resource', async done => {
+        const response = await request(server).put('/api/v1/activities/1/feedback').expect(status.UNAUTHORIZED)
+        done()
+    })
+    test('if successful, return value should be the updated result', async done => {
+        const response = await request(server).put('/api/v1/activities/1/feedback')
+                                            .set('Authorization', authHeader)
+                                            .send(feedback)
+                                            .expect(status.OK)
+
+        expect(response.body.feedback.length).toBeGreaterThanOrEqual(1)
         done()
     })
 })

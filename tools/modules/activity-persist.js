@@ -26,23 +26,21 @@ export async function getActivities(options) {
     let client =  await connect(options.user)
 
     let db = await client.db(process.env.MONGO_DBNAME)
-    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
-    let aggPipe =  [
-        { $match: { published: true } }
-        ]
-    if (options.hasOwnProperty('random')){
-        aggPipe.push({$sample: {size: 5}})
+    let collection
+    let aggPipe = []
+    collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    aggPipe.push({ $match: {
+         published: true,
+         username: { $ne: options.user.username}
+        } })
+    if (options.hasOwnProperty('allow_anon')) {
+        aggPipe[0].$match.allow_anon = true
     }
-    else {
-        if (options.hasOwnProperty('category')){
-            aggPipe[0].$match.category = options.category
-        }
+    if (options.hasOwnProperty('category')) {
+        aggPipe[0].$match.category = options.category
+    }
+    aggPipe.push({$sample: {size: 5}})
 
-        if (options.hasOwnProperty('page') && options.hasOwnProperty('limit')){
-            aggPipe.push({$skip: (options.page-1) * parseInt(options.limit)})
-            aggPipe.push({$limit: parseInt(options.limit)})
-        }
-    }
     let cursor = await collection.aggregate(aggPipe,options)
     let results = await cursor.toArray()
     await cursor.close()
@@ -75,7 +73,38 @@ export async function getActivityById(options) {
     return results
 
 }
+export async function getReviewActivities(options) {
+    let {user, ...dbOptions} = options
+    let client = await connect(options.user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_REVIEW_ACTIVITIES_COL)
+    let total_count = await collection.countDocuments()
+    let aggPipe = [
+        {
+            $sort: { timestamp: -1}
+        },
+        {
+        $project: {
+            answers: 0,
+            feedback: 0
+        },
 
+    }]
+    if (options.hasOwnProperty('page') && options.hasOwnProperty('limit')){
+        aggPipe.push({$skip: (options.page-1) * parseInt(options.limit)})
+        aggPipe.push({$limit: parseInt(options.limit)})
+    }
+
+    let cursor = await collection.aggregate(aggPipe,dbOptions)
+    let results = await cursor.toArray()
+
+    await cursor.close()
+    await client.close()
+    return {
+        count: total_count,
+        data: results
+    }
+}
 export async function getActivitiesByUsername(options) {
 
     let { user, username, ...dbOptions } = options
@@ -113,7 +142,7 @@ export async function getActivitiesByUsername(options) {
     if (dbOptions.hasOwnProperty('page') && dbOptions.hasOwnProperty('limit')){
         aggPipe.splice(aggPipe.length-1,0,{$skip: (dbOptions.page-1) * parseInt(dbOptions.limit)},{$limit: parseInt(options.limit)})
     }
-    console.log(aggPipe)
+
     let cursor = await collection.aggregate(aggPipe,dbOptions)
     let results = await cursor.toArray()
 
@@ -166,7 +195,7 @@ export async function updateActivity(options){
     if (!(schema.correct)) throw new Error(schema.message)
     if (dbOptions.modifyState) {
         if (data.under_review) {
-            console.log('Publishing ativity -- put under_review')
+            console.log('Publishing activity -- put under_review')
             data.published = false
             review_result = await putActivityUnderReview(options)
             result.review = review_result
@@ -207,6 +236,20 @@ export async function removeActivityFromReview(options) {
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_REVIEW_ACTIVITIES_COL)
     let result = await collection.deleteOne({_id: oid}, dbOptions)
+    await client.close()
+    return result
+}
+export async function declineActivity(options) {
+    let {user, id, data, ...dbOptions} = options
+    let result = {}
+    result.delete_result = await removeActivityFromReview(options)
+    let client = await connect(user)
+    let db = await client.db(process.env.MONGO_DBNAME)
+    let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+    let filter = {'_id': ObjectID.createFromHexString(id)}
+    let update = { $set: {under_review: false}}
+    result.update_result = await collection.updateOne(filter,update,dbOptions)
+    await client.close()
     return result
 }
 export async function publishActivity(options) {
