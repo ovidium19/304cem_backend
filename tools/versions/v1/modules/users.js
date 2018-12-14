@@ -1,15 +1,18 @@
+/** @module users */
 import koa from 'koa'
 import koaBP from 'koa-bodyparser'
 import Router from 'koa-router'
 import status from 'http-status-codes'
+/**
+ * Closely related to [db-persist]{@link db-persist}.
+ */
 import * as db from '../../../modules/db-persist'
 
 
 /*
 POST /signup
-HEAD /login
 GET /login
-PUT /:username
+PATCH /user/:username
 */
 
 
@@ -18,7 +21,10 @@ app.use(koaBP())
 
 const router = new Router()
 
-
+/**
+ * GET /api/v1/users
+ * At the moment this function is just for testing purposes, it returns nothing valuable.
+ */
 router.get('/',async ctx => {
     ctx.set('Allow','GET')
 
@@ -35,6 +41,19 @@ router.get('/',async ctx => {
         ctx.body = {status: status.NOT_FOUND, message: err.message}
     }
 })
+
+/**
+ * Route: GET /api/v1/users/login
+ * No params or queries expected.
+ * No body expected.
+ * Takes the user corresponding to the Authorization header and calls [getUserByUsername]{@link db-persist#getUserByUsername}
+ * Does not return an error if user is not found.
+ * Responses:
+ *  200: User object is retrieved.
+ *  401: User has no access to the database.
+ * Returns:
+ * See [getUserByUsername]{@link db-persist#getUserByUsername} for a look at result shape.
+ */
 router.get('/login',async ctx => {
     ctx.set('Allow','GET, HEAD, OPTIONS')
     const user = ctx.state.user
@@ -49,7 +68,18 @@ router.get('/login',async ctx => {
         ctx.body = {status: status.UNAUTHORIZED, message: err.message}
     }
 })
-
+/**
+ * Route: POST /api/v1/users/signup
+ * No params or queries expected.
+ * Body - User data: {email, roles}
+ * Takes the user corresponding to the Authorization header and calls [createUser]{@link db-persist#createUser}
+ * Does not return an error if user is not found.
+ * Responses:
+ *  200: User object is retrieved.
+ *  401: User has no access to the database.
+ * Returns:
+ * See [createUser]{@link db-persist#createUser} for a look at result shape.
+ */
 router.post('/signup', async ctx => {
     ctx.set('Allow','POST, OPTIONS')
     const userData = ctx.request.body
@@ -66,6 +96,18 @@ router.post('/signup', async ctx => {
         ctx.body = {status: err.response.status, message: err.response.data}
     }
 })
+/**
+ * Route: PATCH /api/v1/users/user/:username
+ * No params or queries expected.
+ * Body: Should include details about the updated roles of the user: {string} roles
+ * Takes the user corresponding to the Authorization header and calls [updateUser]{@link db-persist#updateUser}
+ *
+ * Responses:
+ *  200: User object is retrieved and updated.
+ *  422: User data is not valid (wrong schema).
+ * Returns:
+ * See [updateUser]{@link db-persist#updateUser} for a look at result shape.
+ */
 router.patch('/user/:username', async ctx => {
     ctx.set('Allow','PATCH, OPTIONS')
     const options = {
@@ -79,7 +121,6 @@ router.patch('/user/:username', async ctx => {
         ctx.status = status.OK
     }
     catch(err) {
-        console.log(err.message)
         ctx.status = status.UNPROCESSABLE_ENTITY
         ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
     }

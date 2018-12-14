@@ -1,11 +1,17 @@
+/** @module activity-persist */
 import {MongoClient, ObjectID} from  'mongodb'
 import dotenv from 'dotenv'
 import {connect, capitalize, schemaCheck} from './utils'
+
+//Initialize the environment variables so that this file can use them. Check .env file to see a list of env variables
 dotenv.config()
+//These are the admin credentials. They are used only when writing an activity to MONGO_REVIEW_ACTIVITIES_COL
 const adminUser = {
     username: process.env.MONGO_ADMIN_USERNAME,
     password: process.env.MONGO_ADMIN_PASS
 }
+//Represents the fields that are required for an activity. If these fields are not included in the
+//data sent in the body, all functions related to activities will throw an error
 const activitySchema = {
     username: '',
     name: '',
@@ -22,13 +28,31 @@ const activitySchema = {
     published: '',
     under_review: ''
 }
+/**
+ * This function retrieves exactly 5 random activities from the MONGO_ACTIVITY_COL collection.
+ * With parameters, you can fetch from a certain category and activities that allow anonymous answers.
+ * This function is used by the actual game. The game contains 5 activities from one category, or random
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {string} options.allow_anon - If this is anything but an empty string, only fetches activities that allo anonymous answers
+ * @param {string} options.category - Specify which category to pull from. Can be Random, or any available category.
+ * @returns {Array[Object]} - A list of exactly 5 activities
+ */
 export async function getActivities(options) {
+    //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
     let client =  await connect(options.user)
 
+    //fetch the db and the collection to get activities
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection
     let aggPipe = []
+
     collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+
+    //Building the aggregation pipe for this operation
+    //Fetch only published activities, which have not been published by the user trying to fetch
+    //Also check if allow_anon and category are in the params, then modify the agg pipe accordingly
     aggPipe.push({ $match: {
          published: true,
          username: { $ne: options.user.username}
@@ -41,18 +65,39 @@ export async function getActivities(options) {
     }
     aggPipe.push({$sample: {size: 5}})
 
+    //Fetch results and send
     let cursor = await collection.aggregate(aggPipe,options)
     let results = await cursor.toArray()
     await cursor.close()
     await client.close()
     return results
 }
+/**
+ * This function retrieves exactly 5 random activities from the MONGO_ACTIVITY_COL collection.
+ * With parameters, you can fetch from a certain category and activities that allow anonymous answers.
+ * This function is used by the actual game. The game contains 5 activities from one category, or random
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {string} options.id - The activity ID string that should be fetched
+ * @returns {Array[Object]} - An array with 0 or 1 elements. If 0, activity could not be found. Does not throw an error if activity is not found.
+ *
+ */
 export async function getActivityById(options) {
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let { user, id, ...dbOptions } = options
+    //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
     let client = await connect(options.user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+
+    //we are looking for an activity with an exact ID match
     let query = {'_id': ObjectID.createFromHexString(id)}
+
+    //in the aggregation pipe, we calculate the average rating, time, passrate and total_answers
+    //using mongodb aggregation operators.
     let aggPipe =  [
         {
             $match: query
@@ -66,6 +111,7 @@ export async function getActivityById(options) {
             }
         }]
 
+    //fetch and send results.
     let cursor = await collection.aggregate(aggPipe,dbOptions)
     let results = await cursor.toArray()
     await cursor.close()
@@ -73,12 +119,34 @@ export async function getActivityById(options) {
     return results
 
 }
+/**
+ * This function retrieves a list of activitites from the MONGO_REVIEW_ACTIVITIES_COL collection.
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {number} options.page - Specify which page of review activities is requested.
+ * @param {number} options.limit - Specify how many items per page is required.
+ * @returns {Array[Object]} - An array with a number of elements equal or less to options.limit. Can be 0. Does not throw an error.
+ *
+ */
 export async function getReviewActivities(options) {
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let {user, ...dbOptions} = options
+     //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
     let client = await connect(options.user)
+
+    //This time we are working with the MONGO_REVIEW_ACTIVITIES_COL collection. This collection holds activities which
+    //users requested to publish, but which must be reviewed by a Reviewer before completing the publish.
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_REVIEW_ACTIVITIES_COL)
+    //We need to count the total number of documents. This information is important for pagination purposes.
     let total_count = await collection.countDocuments()
+
+    //The aggregation pipe is simple in this case. We fetch all activities, sort them by timestamp and eliminate the
+    //answers and feedback arrays, as they will b empty at this stage and not needed. We also insert pagination
+    //stages if they are available
     let aggPipe = [
         {
             $sort: { timestamp: -1}
@@ -95,6 +163,7 @@ export async function getReviewActivities(options) {
         aggPipe.push({$limit: parseInt(options.limit)})
     }
 
+    //return results
     let cursor = await collection.aggregate(aggPipe,dbOptions)
     let results = await cursor.toArray()
 
@@ -105,17 +174,42 @@ export async function getReviewActivities(options) {
         data: results
     }
 }
+/**
+ * This function retrieves a list of activities from the MONGO_ACTIVITY_COL collection, owned by options.username
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {string} options.username - It is part of options, because it is a route parameter. It is also available under options.user.username.
+ * @param {number} options.page - Specify which page of  activities is requested.
+ * @param {number} options.limit - Specify how many items per page is required.
+ * @param {string} options.published - Specify whether to fetch only activities where published is set to true or false, depending on the value of this parameter.
+ * @param {string} options.category - Specify whether to fetch only activities where category matches this parameter
+ * @param {string} options.sort - Specify a field to sort by descending. Can be avg_rating, avg_passrate, total_answers, timestamp
+ * @returns {Array[Object]} - An array with a number of elements equal or less to options.limit. Can be 0. Does not throw an error.
+ *
+ */
 export async function getActivitiesByUsername(options) {
-
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let { user, username, ...dbOptions } = options
+
+    //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
     let client = await connect(options.user)
+
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+
+    //in this case, we are looking for activities owned by options.username
     let query = {'username': username}
+
+    //add category and published to the filter, if they are available
     if (dbOptions.hasOwnProperty('category')) query.category = dbOptions.category
     if (dbOptions.hasOwnProperty('published')) query.published = dbOptions.published == 'true' ? true : false
     let total_count = await collection.countDocuments(query)
 
+    //again, we add the avg_rating, avg_time, avg_passrate and total_answers fields to all activities
+    //it is easier to do these calculations with mongo, because the operation is much faster here.
     let aggPipe =  [
         {
             $match: query
@@ -133,16 +227,20 @@ export async function getActivitiesByUsername(options) {
                 answers: 0
             }
         }]
+    //If options.sort exists, we introduce a new stage to the pipe that sorts descending based on the field selected.
     if (dbOptions.hasOwnProperty('sort')) {
         let c = dbOptions.sort
         let sortQuery = {}
         sortQuery[c] = -1
         aggPipe.splice(aggPipe.length-1,0,({$sort: sortQuery}))
     }
+
+    //pagination stages
     if (dbOptions.hasOwnProperty('page') && dbOptions.hasOwnProperty('limit')){
         aggPipe.splice(aggPipe.length-1,0,{$skip: (dbOptions.page-1) * parseInt(dbOptions.limit)},{$limit: parseInt(options.limit)})
     }
 
+    //fetch and send results
     let cursor = await collection.aggregate(aggPipe,dbOptions)
     let results = await cursor.toArray()
 
@@ -155,64 +253,144 @@ export async function getActivitiesByUsername(options) {
 
 }
 
-
+/**
+ * This function posts one activity to the MONGO_ACTIVITY_COL collection.
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {Object} options.data - The activity to be inserted. The id of the activity is automatically generated by Mongo
+ * @returns {Object} - An object with 1 field id, which represents the id of the inserted activity
+ *
+ */
 export async function postActivity(options){
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let { user, data, ...dbOptions } = options
+
+    //This checks the options.data field if it matches the required schema for an activity
+    //If it fails, an error is thrown
     let schema = schemaCheck(activitySchema,data)
     if (!(schema.correct)) throw new Error(schema.message)
+
+    //since this is a new activity, we initialize its answers and feedback fields to empty arrays.
     data.answers = []
     data.feedback = []
+
+    //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
     let client = await connect(user)
+
+    //fetch the MONGO_ACTIVITY_COL collection, perform insertion and then return the result.
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
     let result = await collection.insertOne(data, dbOptions)
     await client.close()
     return { id: result.insertedId }
 }
+
+/**
+ * This function posts one activity to the MONGO_REVIEW_ACTIVITIES_COL. It first deletes it if it already exists.
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {Object} options.data - The activity to be inserted. The id of the activity is not automatically generated here. It matches the activity ID from the MONGO_ACTIVITIES_COL collection.
+ * @returns {Object} - An object with 1 field id, which represents the id of the inserted activity, which is the same as the input activity id
+ *
+ */
 async function putActivityUnderReview(options) {
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let { user, data, ...dbOptions } = options
 
+    //This operation is performed with admin credentials.
     let client = await connect(adminUser)
+
+    //fetch the MONGO_REVIEW_ACTIVITIES_COL collection
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_REVIEW_ACTIVITIES_COL)
+
+    //Sanitize the input activity. Once an activity is put under review, we make sure that answers, feedback are empty arrays
+    //and the id matches the input id.
     let ready_data = Object.assign({},data,
         {
             _id: ObjectID.createFromHexString(data['_id']),
             answers: [],
             feedback: []
         })
+    //delete the activity from under_review if it already exists there
     let deleteResult = await collection.deleteOne({_id: ready_data['_id']}, dbOptions)
+
+    //insert it
     let insert_result = await collection.insertOne(ready_data, dbOptions)
+
     await client.close()
     return  { id: insert_result.insertedId }
 
 }
+
+/**
+ * This function posts one activity to the MONGO_REVIEW_ACTIVITIES_COL. It first deletes it if it already exists.
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {Object} options.data - The activity to be inserted. The id of the activity is not automatically generated here. It matches the activity ID from the MONGO_ACTIVITIES_COL collection.
+ * @param {string} options.modifyState - Specify that this operation is an update to the state of the activity, not its contents.
+ * @returns {Object} result - result.activity contains information about the updated activity. Most important field is nModified, which should be 1 if the operation performed successfully.
+ *
+ */
 export async function updateActivity(options){
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let { user, data, ...dbOptions } = options
+
+    //if schema is not correct, we throw an error
     let schema = schemaCheck(activitySchema,data)
+    if (!(schema.correct)) throw new Error(schema.message)
+
     let review_result
     let result = {}
-    if (!(schema.correct)) throw new Error(schema.message)
+
+    /**
+     * An activity can be in three states and these are controlled by two fields: published and under_review
+     * State 1 : Activity is unpublished: published = false, under_review = false
+     * State 2 : Activity is under review: published = false, under_review = true
+     * State 3: Activity is published: published = true, under_review = false
+     * We perform a change state operation only if options.modifyState was sent as a param
+     */
     if (dbOptions.modifyState) {
+        //Transitioning from State 1 to State 2
+        //
         if (data.under_review) {
             console.log('Publishing activity -- put under_review')
             data.published = false
+            /** see {@link activity-persist#putActivityUnderReview} */
             review_result = await putActivityUnderReview(options)
             result.review = review_result
         }
         else{
+            //Transitioning from State 2 to State 1
             if (data.published == false) {
                 console.log('Unpublishing activity')
+                /** see {@link activity-persist#removeActivityFromReview} */
                 review_result = await removeActivityFromReview(options)
                 data.under_review = false
             }
         }
     }
+    //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
     let client = await connect(user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+
+    //All possible update operations are $set operations.
+    //In this case, all we have to do is iterate over the data and match each field to its operation
     const updateFields = Object.keys(data).reduce((p,c,i) => {
+            //we ignore the id of the activity
             if (c == '_id') return p
+
+            //Styles is an object, therefore we need to iterate over its keys and set each key to its values in the updateFields
             if (c == 'styles') {
                 Object.keys(data[c]).map(prop => {
                     p[`styles.${prop}`] = data[c][prop]
@@ -222,16 +400,41 @@ export async function updateActivity(options){
             p[c] = data[c]
             return p
     }, {})
+
+    //Set update operations
     const updates = { $set: updateFields}
+
+    //we update the activity that matches the _id of the options.data activity
     const filter = {'_id': ObjectID.createFromHexString(data['_id'])}
+
+    //update the activity
     let activity_result = await collection.updateOne(filter,updates, dbOptions)
+
+    //fetch the result and send
     result.activity = activity_result['result']
     await client.close()
     return result
 }
+/**
+ * This function removes one activity from the MONGO_REVIEW_ACTIVITIES_COL collection.
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {string} options.id - The id of the activity to be removed
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {Object} options.data - Not used in the context of this function.
+ * @returns {Object} - Db delete operation response from MongoDB. The nModified field should be 1 if this was a successful operation
+ *
+ */
 export async function removeActivityFromReview(options) {
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let {user, id, data, ...dbOptions} = options
+
+    //The id passed is a String. We need to convert to ObjectID for mongo to successfully match the right activity.
     let oid = ObjectID.createFromHexString(id)
+
+    //connect and perform the delete operation on the MONGO_REVIEW_ACTIVITIES_COL
     let client = await connect(user)
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_REVIEW_ACTIVITIES_COL)
@@ -239,48 +442,139 @@ export async function removeActivityFromReview(options) {
     await client.close()
     return result
 }
+
+/**
+ * This function removes the activity from MONGO_REVIEW_ACTIVITIES_COL and updates it in MONGO_ACTIVITY_COL to set the under_review flag to false
+ * Transitions activity state from State 2 to State 1
+ * Used when reviewers decline to publish an activity
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {Object} options.data - Contains information about the activity. Can be omitted, if id is passed/
+ * @param {string} options.id - The id of the activity to be declined.
+ * @returns {Object} result - result.delete_result - result of delete operation . result.update_result - result of update operation
+ *
+ */
 export async function declineActivity(options) {
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let {user, id, data, ...dbOptions} = options
     let result = {}
+    /** see {@link activity-persist#removeActivityFromReview} */
     result.delete_result = await removeActivityFromReview(options)
+
+    //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
+    //Even if the user is valid, this operation will throw an error if the user does not have the Reviewer role.
     let client = await connect(user)
+
+    //fetch MONGO_ACTIVITY_COL collection
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+
+    //match by activity id
     let filter = {'_id': ObjectID.createFromHexString(id)}
+
+    //update the under_review flag to be false
     let update = { $set: {under_review: false}}
+
     result.update_result = await collection.updateOne(filter,update,dbOptions)
     await client.close()
     return result
 }
+/**
+ * This function publishes an activity.
+ * Transition activity from State 2 to State 3
+ * Used by users with the Reviewer role.
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {Object} options.data - Contains information about the activity. Can be omitted, if id is passed/
+ * @param {string} options.id - The id of the activity to be declined.
+ * @returns {Object} result - result.delete_result - result of delete operation . result.update_result - result of update operation
+ *
+ */
 export async function publishActivity(options) {
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let {data, user, id, ...dbOptions} = options
     let result = {}
+     /** see {@link activity-persist#removeActivityFromReview} */
     result.delete_result = await removeActivityFromReview(options)
+
+    //To transition the state of the activity, we need to set the flags appropriately.
     let newdata = Object.assign({},data,{
         under_review: false,
         published: true
     })
+
+     /** see {@link activity-persist#updateActivity} */
     result.update_result = await updateActivity(Object.assign({},options,{data: newdata}, {modifyState: true}))
     return result
 }
-
+/**
+ * This function updates an activity by pushing a new answer to the activity.answers array.
+ * This function is called each time a question is answered when a game is played.
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {Object} options.data - Contains information about the answer.
+ * @param {string} options.id - The id of the activity to be updated.
+ * @returns {Object} result -  result.update_result - result of update operation. if nModified is 1, it was successful
+ *
+ */
 export async function postAnswer(options) {
+    //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let {data, user, id, ...dbOptions} = options
+
+    //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
     let client = await connect(user)
+
+    //fetch collection MONGO_ACTIVITY_COL
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+
+    //match by id
     const filter = {'_id': ObjectID.createFromHexString(id)}
+
+    //update the array answers with the new data.
     const updates = { $push: {"answers" : data}}
     let result = await collection.updateOne(filter,updates,dbOptions)
     await client.close()
     return result['result']
 }
+
+/**
+ * This function updates an activity by pushing a new feedback object to the activity.feedback array.
+ * This function is called each time a user gives feedback on an activity.
+ *
+ * @param {Object} options - Contains all the information needed to perform this db operation
+ * @param {Object} options.user - Contains credential information to connect to the database. If the user doesn't exist, or credentials are invalid, an error will be thrown
+ * @param {Object} options.data - Contains information about the feedback object.
+ * @param {string} options.id - The id of the activity to be updated.
+ * @returns {Object} result -  result.update_result - result of update operation. if nModified is 1, it was successful
+ *
+ */
 export async function postFeedback(options) {
+     //You will see dbOptions very often. This is for testing purposes. In my tests I put certain values
+    //in the options parameter which are ignored by the function, but are processed by the mongodb mock.
+    //dbOptions contains information about which function is being tested, etc.
     let {data, user, id, ...dbOptions} = options
+
+    //Db connection. This is where user authentication takes place. If the user is not valid, this throws an error
     let client = await connect(user)
+
+    //fetch collection MONGO_ACTIVITY_COL
     let db = await client.db(process.env.MONGO_DBNAME)
     let collection = await db.collection(process.env.MONGO_ACTIVITY_COL)
+
+    //match by id
     const filter = {'_id': ObjectID.createFromHexString(id)}
+
+    //update the feedback array by pushing the new data.
     const updates = { $push: {"feedback" : data}}
     let result = await collection.updateOne(filter,updates,dbOptions)
     await client.close()

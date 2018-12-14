@@ -1,0 +1,9 @@
+{
+    "source": {
+        "include": ["tools/server.js","tools/modules","tools/versions/v1"]
+    },
+    "opts" : {
+        "destination": "./docs",
+        "readme": "./README.md"
+    }
+}

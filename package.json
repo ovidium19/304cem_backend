@@ -13,7 +13,8 @@
     "test:watch": "node_modules/.bin/jest --coverage --watchAll",
     "lint:fix": "esw --fix ",
     "precommit": "npm run lint",
-    "prepush": "npm-run-all test lint"
+    "prepush": "npm-run-all test lint",
+    "docgen": "jsdoc "
   },
   "repository": {
     "type": "git",
@@ -62,6 +63,7 @@
     "eslint-plugin-react": "^7.11.1",
     "eslint-watch": "^4.0.2",
     "jest": "^23.6.0",
+    "jsdoc": "^3.5.5",
     "npm-run-all": "^4.1.3",
     "supertest": "^3.3.0"
   }
