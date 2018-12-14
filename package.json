@@ -4,7 +4,7 @@
   "description": "304CEM Back End - Works with MongoDB - Provides all api paths available for this project",
   "main": "tools/server.js",
   "scripts": {
-    "start": "npm-run-all --parallel  open:src lint:watch test:watch",
+    "start": "npm run open:src",
     "open:src": "babel-node tools/server.js",
     "lint": "node_modules/.bin/esw tools",
     "lint:watch": "npm run lint -- --watch",
