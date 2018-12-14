@@ -121,8 +121,10 @@ router.patch('/user/:username', async ctx => {
         ctx.status = status.OK
     }
     catch(err) {
-        ctx.status = status.UNPROCESSABLE_ENTITY
-        ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
+        if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+        else  ctx.status = status.UNPROCESSABLE_ENTITY
+
+        ctx.body = {status: ctx.status, message: err.message}
     }
 })
 

@@ -73,8 +73,10 @@ router.get('/', async ctx => {
        ctx.body = res
    }
    catch(err) {
-       ctx.status = status.BAD_REQUEST
-       ctx.body = {status: status.BAD_REQUEST, message: err.message}
+    if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+    else  ctx.status = status.BAD_REQUEST
+
+    ctx.body = {status: ctx.status, message: err.message}
    }
 })
 /**
@@ -103,8 +105,10 @@ router.post('/', async ctx => {
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.UNPROCESSABLE_ENTITY
-		ctx.body = {status: status.UNPROCESSABLE_ENTITY, message: err.message}
+        if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+        else  ctx.status = status.UNPROCESSABLE_ENTITY
+
+        ctx.body = {status: ctx.status, message: err.message}
     }
 })
 /**
@@ -140,8 +144,10 @@ router.get('/for/:username', async ctx => {
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.BAD_REQUEST
-        ctx.body = {status: status.BAD_REQUEST, message: err.message}
+        if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+        else  ctx.status = status.BAD_REQUEST
+
+        ctx.body = {status: ctx.status, message: err.message}
     }
 })
 /**
@@ -172,8 +178,10 @@ router.get('/:id', async ctx => {
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.BAD_REQUEST
-		ctx.body = {status: status.BAD_REQUEST, message: err.message}
+        if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+        else  ctx.status = status.BAD_REQUEST
+
+       ctx.body = {status: ctx.status, message: err.message}
     }
 })
 
@@ -205,8 +213,10 @@ router.put('/:id', async ctx => {
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.BAD_REQUEST
-		ctx.body = {status: status.BAD_REQUEST, message: err.message}
+        if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+        else  ctx.status = status.BAD_REQUEST
+
+       ctx.body = {status: ctx.status, message: err.message}
     }
 })
 /**
@@ -243,8 +253,10 @@ router.put('/:id/publish', async ctx => {
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.BAD_REQUEST
-		ctx.body = {status: status.BAD_REQUEST, message: err.message}
+        if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+        else  ctx.status = status.BAD_REQUEST
+
+       ctx.body = {status: ctx.status, message: err.message}
     }
 })
 
@@ -282,8 +294,10 @@ router.put('/:id/answer', async ctx => {
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.BAD_REQUEST
-		ctx.body = {status: status.BAD_REQUEST, message: err.message}
+        if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+        else  ctx.status = status.BAD_REQUEST
+
+       ctx.body = {status: ctx.status, message: err.message}
     }
 })
 
@@ -315,8 +329,10 @@ router.put('/:id/feedback', async ctx => {
         ctx.body = res
     }
     catch(err) {
-        ctx.status = status.BAD_REQUEST
-		ctx.body = {status: status.BAD_REQUEST, message: err.message}
+        if (err.message == 'authentication fail') ctx.status = status.UNAUTHORIZED
+        else  ctx.status = status.BAD_REQUEST
+
+        ctx.body = {status: ctx.status, message: err.message}
     }
 })
 
