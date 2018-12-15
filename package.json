@@ -16,6 +16,10 @@
     "prepush": "npm-run-all test lint",
     "docgen": "jsdoc "
   },
+  "engines": {
+      "node": "9.3.0",
+      "npm": "5.5.1"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.coventry.ac.uk/304CEM-1819OCTJAN/Ovidiu_Mitroi_6832432_BACK_END.git"

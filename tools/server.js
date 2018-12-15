@@ -90,7 +90,7 @@ app.use(router.allowedMethods())
 
 //mount version 1 of the api on the path /api/v1
 app.use(mount('/api/v1',v1))
-const server = app.listen(port, () => {
+const server = app.listen(process.env.PORT || port, () => {
     console.log(`Listening on ${port}`)
 })
 
